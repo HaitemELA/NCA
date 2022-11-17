@@ -3,13 +3,15 @@ Class NCA.Hl7toFhir Extends Ens.BusinessProcess [ ClassType = persistent ]
 
 // Method CreateSubscription(MsgIn As EnsLib.HL7.Message, nhsNumber As %String, Output strmCont As Ens.StreamContainer) As %Status
 
-Method OnRequest(pRequest As EnsLib.HL7.Message, Output pResponse As Ens.Response) As %Status
+Method OnRequest(pRequest As EnsLib.HL7.Message, Output pArr As Ens.Response) As %Status
 {
 	//ClassMethod PatientResource(pRequest As EnsLib.HL7.Message) As %Status
 	//Extract nhsNumber from HL7 message
 	set tsc = $$$OK
 	Set nhsNumber = ""
 	Set LocalCode =  ""
+	set pArr=##class(%ArrayOfDataTypes).%New()
+	Set relationshipLKUP = "NCA.RelationShipCodes"
 	Set Count=pRequest.GetValueAt("PID:3(*)")
 	For i=1:1:Count 
 	{	
@@ -35,66 +37,72 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pResponse As Ens.Respons
 		quit $$$ERROR(5001,"The patient's NHS Number and Local code are missing within the Inbound HL7 message.")
 	}
 
-	set ^HL7Data("NhsNumberContent.value") = nhsNumber
-	set ^HL7Data("NhsNumberAssigner.display") = nhsAssigner
-	set ^HL7Data("LocalCode") = LocalCode
-	set ^HL7Data("prefixContent") = pRequest.GetValueAt("PID:5.5")
-	set ^HL7Data("nameContent.family") = pRequest.GetValueAt("PID:5.1")
-	set ^HL7Data("givenNameContent.given") = pRequest.GetValueAt("PID:5.2")
+	do pArr.SetAt(nhsNumber, "NhsNumberContent.value")
+	do pArr.SetAt( nhsAssigner, "NhsNumberAssigner.display")
+	do pArr.SetAt(LocalCode, "LocalCode")
+	do pArr.SetAt(pRequest.GetValueAt("PID:5.5"), "prefixContent")
+	do pArr.SetAt(pRequest.GetValueAt("PID:5.1"), "nameContent.family")
+	do pArr.SetAt(pRequest.GetValueAt("PID:5.2"), "givenNameContent.given")
 
-	// Gender transformation:
+	// Gender LookUp:
 	if pRequest.GetValueAt("PID:8") = "M"
 	{
-		set ^HL7Data("resource.gender") = "male"
+		do pArr.SetAt("male", "resource.gender")
 	}
 	elseif pRequest.GetValueAt("PID:8") = "F"
 	{
-		set ^HL7Data("resource.gender") = "female"
+		do pArr.SetAt("female", "resource.gender")
 	}
 	elseif pRequest.GetValueAt("PID:8") = "U"
 	{
-		set ^HL7Data("resource.gender") = "unknown"
+		do pArr.SetAt("unknown", "resource.gender")
 	}
 	elseif pRequest.GetValueAt("PID:8") = "I"
 	{
-		set ^HL7Data("resource.gender") = "other"
+		do pArr.SetAt("other", "resource.gender")
 	}
 
-	set ^HL7Data("resource.birthDate") =$ZDT($ZDATEH(pRequest.GetValueAt("PID:7.1"),5),3)
-	set ^HL7Data("addressLinesContent") = pRequest.GetValueAt("PID:11.1")
-	set ^HL7Data("addressContent.city") = pRequest.GetValueAt("PID:11.3")
-	set ^HL7Data("addressContent.postalCode") = pRequest.GetValueAt("PID:11.5")
+	// Date of birth
+	do pArr.SetAt($ZDT($ZDATEH(pRequest.GetValueAt("PID:7.1"),5),3), "resource.birthDate")
+
+	// Patient address
+	do pArr.SetAt(pRequest.GetValueAt("PID:11.1"), "addressLinesContent")
+	do pArr.SetAt(pRequest.GetValueAt("PID:11.3"), "addressContent.city")
+	do pArr.SetAt( pRequest.GetValueAt("PID:11.5"), "addressContent.postalCode")
+
+	// Deceased patient
 	if pRequest.GetValueAt("PID:29") '= ""
 	{
 		set deceaseDay = $EXTRACT(pRequest.GetValueAt("PID:29"), 1, 8)
 		set deceaseTime = $EXTRACT(pRequest.GetValueAt("PID:29"), 9, 10)_":"_$EXTRACT(pRequest.GetValueAt("PID:29"), 11, 12)_":"
 		set deceaseTime = deceaseTime_$EXTRACT(pRequest.GetValueAt("PID:29"), 13, 17)_":"_$EXTRACT(pRequest.GetValueAt("PID:29"), 18, 19)
 
-		set ^HL7Data("resource.deceasedDateTime") = $ZDT($ZDATEH(deceaseDay,5),3)_"T"_deceaseTime
+		do pArr.SetAt($ZDT($ZDATEH(deceaseDay,5),3)_"T"_deceaseTime, "resource.deceasedDateTime")
 	}
 	
-	set ^HL7Data("addressLinesContent") = pRequest.GetValueAt("PID:11.1") 
-	set ^HL7Data("addressContent.city") = pRequest.GetValueAt("PID:11.3")
-	set ^HL7Data("addressContent.postalCode") = pRequest.GetValueAt("PID:11.5")
-	set ^HL7Data("phoneContent.value") = pRequest.GetValueAt("PID:13.1")
-	set ^HL7Data("emailContent.value") = pRequest.GetValueAt("PID:13.4")
 
-	set ^HL7Data("relationshipCodingCode.code") = pRequest.GetValueAt("NK1.3")
+	do pArr.SetAt(pRequest.GetValueAt("PID:11.1"), "addressLinesContent")
+	do pArr.SetAt(pRequest.GetValueAt("PID:11.3"), "addressContent.city")
+	do pArr.SetAt(pRequest.GetValueAt("PID:11.5"), "addressContent.postalCode")
+	do pArr.SetAt(pRequest.GetValueAt("PID:13.1"), "phoneContent.value")
+	do pArr.SetAt(pRequest.GetValueAt("PID:13.4"), "emailContent.value")
+
+	// Next of Kin
+	do pArr.SetAt(pRequest.GetValueAt("NK1.3"), "relationshipCodingCode.code")
 	
+	$$$TRACE(pArr.GetAt("NhsNumberContent.value")_" / "_pArr.GetAt("prefixContent"))
+	set tsc = ..PatientResource(pArr)
 
-	set tsc = ..PatientResource()
-
-	kill ^HL7Data
 	quit tsc
 }
 
-Method PatientResource() As %Status
+Method PatientResource(pArr As Ens.Request) As %Status
 {
 	set tsc = $$$OK
 
-	set nhsNumber = ^HL7Data("NhsNumberContent.value")
-	set nhsAssigner = ^HL7Data("NhsNumberAssigner.display") 
-	set LocalCode = ^HL7Data("LocalCode")
+	set nhsNumber = pArr.GetAt("NhsNumberContent.value")
+	set nhsAssigner = pArr.GetAt("NhsNumberAssigner.display") 
+	set LocalCode = pArr.GetAt("LocalCode")
 	// Create a new subscription
 	set resource = ##class(%DynamicObject).%New()
 	
@@ -142,14 +150,14 @@ Method PatientResource() As %Status
 	
 	Set prefixArray = ##class(%DynamicArray).%New() // Prefix: create a special object for prefix as it comes within an array
 	Set prefixContent = ##class(%DynamicArray).%New()
-	set prefixContent = ^HL7Data("prefixContent")
+	set prefixContent = pArr.GetAt("prefixContent")
 	set prefixArray.prefix  = prefixContent
 	set nameContent.prefix = prefixArray
 
-	set nameContent.family = ^HL7Data("nameContent.family")
+	set nameContent.family = pArr.GetAt("nameContent.family")
 
 	Set givenNameContent = ##class(%DynamicArray).%New() // Prefix: create a special object for prefix as it comes within an array
-	set givenNameContent.given = ^HL7Data("givenNameContent.given")
+	set givenNameContent.given = pArr.GetAt("givenNameContent.given")
 	set nameContent.given = givenNameContent
 
 	do nameArray.%Push(nameContent)
@@ -158,7 +166,7 @@ Method PatientResource() As %Status
 	// If old name exists, then apply the same process
 
 	// Gender
-	set resource.gender = ^HL7Data("resource.gender")
+	set resource.gender = pArr.GetAt("resource.gender")
 
 	// BirthDate
 	/*
@@ -173,14 +181,14 @@ Method PatientResource() As %Status
 	set dob.extension = birthDateExtensionArray
 	*/
 
-	set resource.birthDate = ^HL7Data("resource.birthDate")
+	set resource.birthDate = pArr.GetAt("resource.birthDate")
 	;set resource.birthDate = dob
 
 	//Deceased
 	;set resource.deceasedBoolean = "true"
-	if ^HL7Data("resource.deceasedDateTime") '= ""
+	if pArr.GetAt("resource.deceasedDateTime") '= ""
 	{
-		set resource.deceasedDateTime = ^HL7Data("resource.deceasedDateTime")
+		set resource.deceasedDateTime = pArr.GetAt("resource.deceasedDateTime")
 	}
 
 	//maritalStatus
@@ -201,12 +209,12 @@ Method PatientResource() As %Status
 
 	set addressLinesArray = ##class(%DynamicArray).%New() // for address lines
 	set addressLinesContent = ##class(%DynamicArray).%New()
-	set addressLinesContent = ^HL7Data("addressLinesContent")
+	set addressLinesContent = pArr.GetAt("addressLinesContent")
 	set addressLinesArray.line = addressLinesContent // Loop HL7 for address lines
 	set addressContent.line = addressLinesArray
 
-	set addressContent.city = ^HL7Data("addressContent.city")
-	set addressContent.postalCode = ^HL7Data("addressContent.postalCode")
+	set addressContent.city = pArr.GetAt("addressContent.city")
+	set addressContent.postalCode = pArr.GetAt("addressContent.postalCode")
     set addressContent.country = "UK"
 
 	do addressArray.%Push(addressContent)
@@ -216,19 +224,19 @@ Method PatientResource() As %Status
 	set telecomArray = ##class(%DynamicArray).%New()
 	set phoneContent = ##class(%DynamicObject).%New()
 	
-	if ^HL7Data("phoneContent.value") '= ""
+	if pArr.GetAt("phoneContent.value") '= ""
 	{
 		set phoneContent.system = "phone"
-		set phoneContent.value = ^HL7Data("phoneContent.value")
+		set phoneContent.value = pArr.GetAt("phoneContent.value")
 		set phoneContent.use = "home"
 		do telecomArray.%Push(phoneContent)
 	}
 
-	if ^HL7Data("emailContent.value") '= ""
+	if pArr.GetAt("emailContent.value") '= ""
 	{
 		set emailContent = ##class(%DynamicObject).%New()
 		set emailContent.system = "email"
-		set emailContent.value = ^HL7Data("emailContent.value")
+		set emailContent.value = pArr.GetAt("emailContent.value")
 		set emailContent.use = "work"
 		do telecomArray.%Push(emailContent)
 
