@@ -5,13 +5,13 @@ Class NCA.Hl7toFhir Extends Ens.BusinessProcess [ ClassType = persistent ]
 
 Method OnRequest(pRequest As EnsLib.HL7.Message, Output pArr As Ens.Response) As %Status
 {
-	//ClassMethod PatientResource(pRequest As EnsLib.HL7.Message) As %Status
-	//Extract nhsNumber from HL7 message
 	set tsc = $$$OK
 	Set nhsNumber = ""
 	Set LocalCode =  ""
 	set pArr=##class(%ArrayOfDataTypes).%New()
 	Set relationshipLKUP = "NCA.RelationShipCodes"
+
+	// NHS Number / Local Code
 	Set Count=pRequest.GetValueAt("PID:3(*)")
 	For i=1:1:Count 
 	{	
@@ -80,7 +80,6 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pArr As Ens.Response) As
 		do pArr.SetAt($ZDT($ZDATEH(deceaseDay,5),3)_"T"_deceaseTime, "resource.deceasedDateTime")
 	}
 	
-
 	do pArr.SetAt(pRequest.GetValueAt("PID:11.1"), "addressLinesContent")
 	do pArr.SetAt(pRequest.GetValueAt("PID:11.3"), "addressContent.city")
 	do pArr.SetAt(pRequest.GetValueAt("PID:11.5"), "addressContent.postalCode")
@@ -88,9 +87,24 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pArr As Ens.Response) As
 	do pArr.SetAt(pRequest.GetValueAt("PID:13.4"), "emailContent.value")
 
 	// Next of Kin
-	do pArr.SetAt(pRequest.GetValueAt("NK1.3"), "relationshipCodingCode.code")
-	
-	$$$TRACE(pArr.GetAt("NhsNumberContent.value")_" / "_pArr.GetAt("prefixContent"))
+	Set Cnt=pRequest.GetValueAt("NK1(*)")
+	For j=1:1:Cnt
+	{
+		Set RelationShipCode = ##class(Ens.Util.FunctionSet).Lookup(relationshipLKUP, pRequest.GetValueAt("NK1("_j_"):3.1"), "$D", "$DE")
+		do pArr.SetAt(RelationShipCode_j, "relationshipCodingCode.code"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):2.5"), "ContactprefixContent"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):2.2"), "ContactgivenNameContent.given"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):2.1"), "ContactnameContent.family"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):5"), "ContactphoneContent.value"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):6"), "ContactphoneBusinessContent.value"_j) // TODO
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):4.1"), "ContactAddressLinesContent"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):4.2"), "ContactAddressLinesOtherContent"_j)  // TODO
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):4.3"), "ContactAddressLinesCityContent"_j)  // TODO
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):4.4"), "ContactAddressLinesStateContent"_j)  // TODO
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):4.5"), "ContactAddressContent.postalCode"_j)
+
+	}
+
 	set tsc = ..PatientResource(pArr)
 
 	quit tsc
@@ -246,57 +260,73 @@ Method PatientResource(pArr As Ens.Request) As %Status
 
 	// Contact
 	set ContactContent  = ##class(%DynamicObject).%New()
-	
-	set CodeArray = ##class(%DynamicArray).%New()
-	set relationshipArray = ##class(%DynamicArray).%New()
-	set relationship = ##class(%DynamicObject).%New()
-	set relationshipCoding = ##class(%DynamicObject).%New()
-	set relationshipCodingCode = ##class(%DynamicObject).%New()
+	set ContactContentArray  = ##class(%DynamicArray).%New()
 
-	set relationshipCodingCode.code = "AMENDER"
-	do CodeArray.%Push(relationshipCodingCode)
-	set relationshipCoding.coding = CodeArray
-	do relationshipArray.%Push(relationshipCoding)
-	set ContactContent.relationship = relationshipArray
+	set j=1
+	while pArr.GetAt("relationshipCodingCode.code"_j) '= ""
+	{
+		set CodeArray = ##class(%DynamicArray).%New()
+		set relationshipArray = ##class(%DynamicArray).%New()
+		set relationshipCoding = ##class(%DynamicObject).%New()
+		set relationshipCodingCode = ##class(%DynamicObject).%New()
 
-	set ContactnameContent = ##class(%DynamicObject).%New()
-	set contactName = ##class(%DynamicObject).%New()
-	Set ContactprefixArray = ##class(%DynamicArray).%New() // Prefix: create a special object for prefix as it comes within an array
-	Set ContactprefixContent = ##class(%DynamicArray).%New()
-	set ContactprefixContent = "Mrs"
-	set ContactprefixArray.prefix  = ContactprefixContent
-	set ContactnameContent.prefix = ContactprefixArray
-	Set ContactgivenNameContent = ##class(%DynamicArray).%New() // Prefix: create a special object for prefix as it comes within an array
-	set ContactgivenNameContent.given = "Given Name 1"
-	set ContactnameContent.given = ContactgivenNameContent
-	set ContactnameContent.family = "Family Name"
-	set ContactContent.name = ContactnameContent
+		set ContactnameContent = ##class(%DynamicObject).%New()
+		Set ContactprefixArray = ##class(%DynamicArray).%New() // Prefix: create a special object for prefix as it comes within an array
 
-	set ContacttelecomArray = ##class(%DynamicArray).%New()
-	set ContactphoneContent = ##class(%DynamicObject).%New()
-	set ContactemailContent = ##class(%DynamicObject).%New()
-	set ContactphoneContent.system = "phone"
-	set ContactphoneContent.value = "0712312312"
-	set ContactphoneContent.use = "mobile"
-	set ContactemailContent.system = "email"
-	set ContactemailContent.value = "email2@email2.com"
-	set ContactemailContent.use = "home"
-	do ContacttelecomArray.%Push(ContactphoneContent)
-	do ContacttelecomArray.%Push(ContactemailContent)
-	set ContactContent.telecom = ContacttelecomArray
+		set ContacttelecomArray = ##class(%DynamicArray).%New()
+		set ContactphoneContent = ##class(%DynamicObject).%New()
 
-	set ContactAddressContent = ##class(%DynamicObject).%New()
-	set ContactAddressLinesArray = ##class(%DynamicArray).%New() // for address lines
-	set ContactAddressLinesContent = ##class(%DynamicArray).%New()
-	set ContactAddressLinesContent = "Contact address line 0" 
-	set ContactAddressLinesArray.line = addressLinesContent // Loop HL7 for address lines
-	set ContactAddressContent.line = addressLinesArray
-	set ContactAddressContent.city = "city or line?"
-	set ContactAddressContent.postalCode = "CT9 9CT"
-    set ContactAddressContent.country = "UK"
-	set ContactContent.address = ContactAddressContent
+		set ContactAddressContent = ##class(%DynamicObject).%New()
+		set ContactAddressLinesArray = ##class(%DynamicArray).%New() // for address lines
 
-	set resource.contact = ContactContent
+		set relationshipCodingCode.code = pArr.GetAt("relationshipCodingCode.code"_j)
+		do CodeArray.%Push(relationshipCodingCode)
+		set relationshipCoding.coding = CodeArray
+		do relationshipArray.%Push(relationshipCoding)
+		set ContactContent.relationship = relationshipArray
+
+		set ContactprefixArray.prefix  = pArr.GetAt("ContactprefixContent"_j)
+		set ContactnameContent.prefix = ContactprefixArray
+		set ContactnameContent.given = pArr.GetAt("ContactgivenNameContent.given"_j)
+		set ContactnameContent.family = pArr.GetAt("ContactnameContent.family"_j)
+		set ContactContent.name = ContactnameContent
+
+		set ContactphoneContent.system = "phone"
+		set ContactphoneContent.value = pArr.GetAt("ContactphoneContent.value"_j)
+		if ($EXTRACT(ContactphoneContent.value, 1, 2) = "07") || ($EXTRACT(ContactphoneContent.value, 1, 4) = "+447")
+		{
+			set ContactphoneContent.use = "mobile"
+		}
+		else
+		{
+			set ContactphoneContent.use = "home"
+		}
+		
+		do ContacttelecomArray.%Push(ContactphoneContent)
+		set ContactContent.telecom = ContacttelecomArray
+
+		do ContactAddressLinesArray.%Push(pArr.GetAt("ContactAddressLinesContent"_j))
+		do ContactAddressLinesArray.%Push(pArr.GetAt("ContactAddressLinesOtherContent"_j))
+		do ContactAddressLinesArray.%Push(pArr.GetAt("ContactAddressLinesCityContent"_j))
+
+		if pArr.GetAt("ContactAddressLinesStateContent"_j) '= ""
+		{
+			do ContactAddressLinesArray.%Push(pArr.GetAt("ContactAddressLinesStateContent"_j))
+		}
+		
+		set ContactAddressContent.line = ContactAddressLinesArray
+
+		;set ContactAddressContent.city = pArr.GetAt("ContactAddressLinesCityContent"_j)
+		set ContactAddressContent.postalCode = pArr.GetAt("ContactAddressContent.postalCode"_j)
+		set ContactContent.address = ContactAddressContent
+
+		do ContactContentArray.%Push(ContactContent)
+
+		Set j = j+1
+	}
+
+
+	set resource.contact = ContactContentArray
 
 	//Extension
 	Set Extension = ##class(%DynamicArray).%New()
