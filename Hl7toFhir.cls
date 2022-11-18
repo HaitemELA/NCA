@@ -15,7 +15,6 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pArr As Ens.Response) As
 	Set Count=pRequest.GetValueAt("PID:3(*)")
 	For i=1:1:Count 
 	{	
-		$$$TRACE(i_"//"_pRequest.GetValueAt("PID:3("_i_").5"))
 		If (pRequest.GetValueAt("PID:3("_i_").5")="NHS")
 		   	{
 			   	Set nhsNumber=(pRequest.GetValueAt("PID:3("_i_").1"))
@@ -27,10 +26,6 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pArr As Ens.Response) As
 			   	Set LocalCode=(pRequest.GetValueAt("PID:3("_i_").1"))
 		   	}
 	}
-	
-	$$$TRACE("NHS No // nhsAssigner: "_nhsNumber)
-	$$$TRACE("NHS No // nhsAssigner: "_nhsAssigner)
-	$$$TRACE("LocalCode: "_LocalCode)
 
 	if nhsNumber="" && LocalCode=""
 	{
@@ -96,19 +91,33 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pArr As Ens.Response) As
 		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):2.2"), "ContactgivenNameContent.given"_j)
 		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):2.1"), "ContactnameContent.family"_j)
 		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):5"), "ContactphoneContent.value"_j)
-		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):6"), "ContactphoneBusinessContent.value"_j) // TODO
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):6"), "ContactphoneBusinessContent.value"_j)
 		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):4.1"), "ContactAddressLinesContent"_j)
-		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):4.2"), "ContactAddressLinesOtherContent"_j)  // TODO
-		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):4.3"), "ContactAddressLinesCityContent"_j)  // TODO
-		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):4.4"), "ContactAddressLinesStateContent"_j)  // TODO
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):4.2"), "ContactAddressLinesOtherContent"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):4.3"), "ContactAddressLinesCityContent"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):4.4"), "ContactAddressLinesStateContent"_j)
 		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):4.5"), "ContactAddressContent.postalCode"_j)
 
 	}
 
 	set tsc = ..PatientResource(pArr)
 
+	// Practitioner
+	do pArr.SetAt(pRequest.GetValueAt("PD1:4.10"), "PASLocal")
+	do pArr.SetAt(pRequest.GetValueAt("PD1:4.1"), "NationalCode")
+	do pArr.SetAt(pRequest.GetValueAt("PD1:4.2"), "GPFamilyName")
+	do pArr.SetAt(pRequest.GetValueAt("PD1:4.3"), "GPGivenName")
+	do pArr.SetAt(pRequest.GetValueAt("PD1:4.6"), "GPPrefix")
+
+
+	set tsc = ..PractitionerResource(pArr)
+
+	
+
 	quit tsc
 }
+
+// Patient Resource
 
 Method PatientResource(pArr As Ens.Request) As %Status
 {
@@ -124,35 +133,34 @@ Method PatientResource(pArr As Ens.Request) As %Status
 	set resource.resourceType = "Patient"
 
 	// NHS Number
+	set identifierArray = ##class(%DynamicArray).%New()
 	if nhsNumber
-		{
-			set identifierArray = ##class(%DynamicArray).%New()
-			set NhsNumberContent = ##class(%DynamicObject).%New()
-			Set NhsNumberAssigner = ##class(%DynamicObject).%New()
-			set NhsNumberContent.system = "https://fhir.nhs.uk/Id/nhs-number"
-			set NhsNumberContent.value = nhsNumber
-			;set NhsNumberAssigner.reference = "https://fhir.hl7.org.uk/StructureDefinition/UKCore-Organization"
-			set NhsNumberAssigner.display = nhsAssigner
-			;set NhsNumberContent.assigner = "https://fhir.hl7.org.uk/StructureDefinition/UKCore-Organization/00000"
-			set NhsNumberContent.assigner = NhsNumberAssigner
+	{
+		set NhsNumberContent = ##class(%DynamicObject).%New()
+		Set NhsNumberAssigner = ##class(%DynamicObject).%New()
+		set NhsNumberContent.system = "https://fhir.nhs.uk/Id/nhs-number"
+		set NhsNumberContent.value = nhsNumber
+		;set NhsNumberAssigner.reference = "https://fhir.hl7.org.uk/StructureDefinition/UKCore-Organization"
+		set NhsNumberAssigner.display = nhsAssigner
+		;set NhsNumberContent.assigner = "https://fhir.hl7.org.uk/StructureDefinition/UKCore-Organization/00000"
+		set NhsNumberContent.assigner = NhsNumberAssigner
 
-			do identifierArray.%Push(NhsNumberContent)
-		}
+		do identifierArray.%Push(NhsNumberContent)
+	}
 	
 	//ODS-Local: skip if the inbound HL7 doesn't have it
 	if LocalCode
-		{
-			set LocalArray = ##class(%DynamicArray).%New()
-			set LocalContent = ##class(%DynamicObject).%New()
-			Set LocalAssigner = ##class(%DynamicObject).%New()
-			set LocalContent.system = "ODS-Local"
-			set LocalContent.value = LocalCode
-			;set LocalAssigner.reference = "https://fhir.hl7.org.uk/StructureDefinition/UKCore-Organization"
-			set LocalAssigner.display = "PAS-LOCAL"
-			set LocalContent.assigner = LocalAssigner
+	{
+		set LocalContent = ##class(%DynamicObject).%New()
+		Set LocalAssigner = ##class(%DynamicObject).%New()
+		set LocalContent.system = "ODS-Local"
+		set LocalContent.value = LocalCode
+		;set LocalAssigner.reference = "https://fhir.hl7.org.uk/StructureDefinition/UKCore-Organization"
+		set LocalAssigner.display = "PAS-LOCAL"
+		set LocalContent.assigner = LocalAssigner
 
-			do identifierArray.%Push(LocalContent)
-		}
+		do identifierArray.%Push(LocalContent)
+	}
 
 	// push both identifiers: NHS Number + Local Code
 	set resource.identifier = identifierArray
@@ -259,12 +267,14 @@ Method PatientResource(pArr As Ens.Request) As %Status
 	set resource.telecom = telecomArray
 
 	// Contact
-	set ContactContent  = ##class(%DynamicObject).%New()
+	
 	set ContactContentArray  = ##class(%DynamicArray).%New()
 
 	set j=1
 	while pArr.GetAt("relationshipCodingCode.code"_j) '= ""
 	{
+		$$$TRACE(pArr.GetAt("ContactgivenNameContent.given"_j))
+		set ContactContent  = ##class(%DynamicObject).%New()
 		set CodeArray = ##class(%DynamicArray).%New()
 		set relationshipArray = ##class(%DynamicArray).%New()
 		set relationshipCoding = ##class(%DynamicObject).%New()
@@ -321,6 +331,8 @@ Method PatientResource(pArr As Ens.Request) As %Status
 		set ContactContent.address = ContactAddressContent
 
 		do ContactContentArray.%Push(ContactContent)
+
+		$$$TRACE(ContactContentArray.%ToJSON())
 
 		Set j = j+1
 	}
@@ -416,7 +428,85 @@ Method PatientResource(pArr As Ens.Request) As %Status
 	set strmCont.Stream=stream
 	*/
 	
-	quit tsc
+	Quit tsc
+}
+
+// Practitioner Resource
+
+Method PractitionerResource(pArr As Ens.Request) As %Status
+{
+	set tsc = $$$OK
+
+	set PASLocal = pArr.GetAt("PASLocal")
+	set NationalCode = pArr.GetAt("NationalCode")
+	set ADLocal = pArr.GetAt("ADLocal")
+
+	set GPFamilyName=pArr.GetAt("GPFamilyName")
+	set GPGivenName=pArr.GetAt("GPGivenName")
+	set GPPrefix=pArr.GetAt("GPPrefix")
+
+	// Create a new subscription
+	set resource = ##class(%DynamicObject).%New()
+	
+	// Create a "Resource Type" and add it to the subscription
+	set resource.resourceType = "Practitioner"
+
+	// PAS Local
+	set identifierArray = ##class(%DynamicArray).%New()
+	if PASLocal '= ""
+	{
+		set PASLocalContent = ##class(%DynamicObject).%New()
+		Set PASLocalAssigner = ##class(%DynamicArray).%New()
+		Set PASLocalAssignerContent = ##class(%DynamicObject).%New()
+		set PASLocalContent.system = "https://www.northerncarealliance.nhs.uk/PAS-LOCAL"
+		set PASLocalContent.value = PASLocal
+		set PASLocalAssignerContent.reference = "Organization/RW6orRM3"
+		do PASLocalAssigner.%Push(PASLocalAssignerContent)
+		set PASLocalContent.assigner = PASLocalAssigner
+
+		do identifierArray.%Push(PASLocalContent)
+	}
+
+	// National Code
+	if NationalCode '= ""
+	{
+		set NationalCodeContent = ##class(%DynamicObject).%New()
+		Set NationalCodeAssigner = ##class(%DynamicObject).%New()
+		set NationalCodeContent.system = "https://fhir.hl7.org.uk/Id/gmc-number"
+		set NationalCodeContent.value = NationalCode
+		do identifierArray.%Push(NationalCodeContent)
+	}
+
+	/*
+	if ADLocal '= ""
+	{
+		set ADLocalContent = ##class(%DynamicObject).%New()
+		Set ADLocalAssigner = ##class(%DynamicObject).%New()
+		set ADLocalContent.system = "https://www.northerncarealliance.nhs.uk/PAS-LOCAL"
+		set ADLocalContent.value = ADLocal //need to be looked up??
+		set ADLocalAssigner.identifier = "RW6orRM3" //need to be looked up??
+		set ADLocalContent.assigner = ADLocalAssigner
+
+		do identifierArray.%Push(ADLocalContent)
+	}
+	*/
+
+	set resource.identifier = identifierArray
+
+	// GP Name
+	set GPnameArray = ##class(%DynamicArray).%New()
+	set GPnameContent = ##class(%DynamicObject).%New()
+	Set GPnameAssigner = ##class(%DynamicObject).%New()
+	set GPnameContent.use = "official"
+	set GPnameContent.family = GPFamilyName
+	set GPnameContent.given = GPGivenName
+	set GPnameContent.prefix = GPPrefix
+	do GPnameArray.%Push(GPnameContent)
+
+	set resource.name = GPnameArray
+	$$$TRACE("resource="_resource.%ToJSON())
+
+	Quit tsc
 }
 
 Method OnResponse() As %Status
