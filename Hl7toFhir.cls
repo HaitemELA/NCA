@@ -101,6 +101,7 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pArr As Ens.Response) As
 	}
 
 	set tsc = ..PatientResource(pArr)
+	set tsc = ..GPPractitionerResource()
 
 	// Practitioner
 	do pArr.SetAt(pRequest.GetValueAt("PD1:4.10"), "PASLocal")
@@ -273,7 +274,6 @@ Method PatientResource(pArr As Ens.Request) As %Status
 	set j=1
 	while pArr.GetAt("relationshipCodingCode.code"_j) '= ""
 	{
-		$$$TRACE(pArr.GetAt("ContactgivenNameContent.given"_j))
 		set ContactContent  = ##class(%DynamicObject).%New()
 		set CodeArray = ##class(%DynamicArray).%New()
 		set relationshipArray = ##class(%DynamicArray).%New()
@@ -331,8 +331,6 @@ Method PatientResource(pArr As Ens.Request) As %Status
 		set ContactContent.address = ContactAddressContent
 
 		do ContactContentArray.%Push(ContactContent)
-
-		$$$TRACE(ContactContentArray.%ToJSON())
 
 		Set j = j+1
 	}
@@ -417,7 +415,7 @@ Method PatientResource(pArr As Ens.Request) As %Status
 	//UKCore extensions
 	set resource.extension = Extension
 	zw resource
-	$$$TRACE("resource="_resource.%ToJSON())
+	$$$TRACE("Patientresource= "_resource.%ToJSON())
 
 	// Add the Subscription into a streamContainer	
 	/*
@@ -428,6 +426,46 @@ Method PatientResource(pArr As Ens.Request) As %Status
 	set strmCont.Stream=stream
 	*/
 	
+	Quit tsc
+}
+
+// GPPractitionerRole resource
+
+Method GPPractitionerResource() As %Status
+{
+	set tsc = $$$OK
+
+	set resource = ##class(%DynamicObject).%New()
+	set resource.resourceType = "PractitionerRole"
+
+	set specialty = ##class(%DynamicObject).%New()
+	set specialtyArray = ##class(%DynamicArray).%New()
+	set specialtyCoding = ##class(%DynamicObject).%New()
+	set specialtyCoding.system = "http://snomed.info/sct"
+	set specialtyCoding.code = "394814009"
+	set specialtyCoding.display = "General practice"
+	do specialtyArray.%Push(specialtyCoding)
+	set specialty.coding = specialtyArray
+
+	set resource.specialty = specialty
+
+	set practitionerArray = ##class(%DynamicArray).%New()
+	set practitioner = ##class(%DynamicObject).%New()
+	set practitioner.reference = "Practitioner/practitioner1"
+	do practitionerArray.%Push(practitioner)
+
+	set resource.practitioner = practitionerArray
+
+	set organizationArray = ##class(%DynamicArray).%New()
+	set organization = ##class(%DynamicObject).%New()
+	set organization.reference = "Organization/Organization1"
+	do organizationArray.%Push(organization)
+
+	set resource.organization = organizationArray
+
+	$$$TRACE("GPPractitionerResource= "_resource.%ToJSON())
+
+
 	Quit tsc
 }
 
@@ -504,7 +542,7 @@ Method PractitionerResource(pArr As Ens.Request) As %Status
 	do GPnameArray.%Push(GPnameContent)
 
 	set resource.name = GPnameArray
-	$$$TRACE("resource="_resource.%ToJSON())
+	$$$TRACE("PractitionerResource= "_resource.%ToJSON())
 
 	Quit tsc
 }
