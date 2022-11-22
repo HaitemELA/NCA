@@ -149,9 +149,7 @@ Method PatientResource(pArr As Ens.Request) As %Status
 		Set NhsNumberAssigner = ##class(%DynamicObject).%New()
 		set NhsNumberContent.system = "https://fhir.nhs.uk/Id/nhs-number"
 		set NhsNumberContent.value = nhsNumber
-		;set NhsNumberAssigner.reference = "https://fhir.hl7.org.uk/StructureDefinition/UKCore-Organization"
 		set NhsNumberAssigner.display = nhsAssigner
-		;set NhsNumberContent.assigner = "https://fhir.hl7.org.uk/StructureDefinition/UKCore-Organization/00000"
 		set NhsNumberContent.assigner = NhsNumberAssigner
 
 		do identifierArray.%Push(NhsNumberContent)
@@ -337,7 +335,6 @@ Method PatientResource(pArr As Ens.Request) As %Status
 		Set j = j+1
 	}
 
-
 	set resource.contact = ContactContentArray
 
 	//Extension
@@ -345,66 +342,53 @@ Method PatientResource(pArr As Ens.Request) As %Status
 
 	// Extension - BirthPlace
 	set birthPlace  = ##class(%DynamicObject).%New()
-	set birthPlaceContent = ##class(%DynamicObject).%New()
+	set birthPlace.url = "http://hl7.org/fhir/StructureDefinition/patient-birthPlace"
+	set birthPlace.value = "Birth Place" // !!!! need to be address type???
 
-	set birthPlaceContent.url = "http://hl7.org/fhir/StructureDefinition/patient-birthPlace"
-	set birthPlaceContent.value = "Birth Place" // !!!! need to be address type???
-
-	do Extension.%Push(birthPlaceContent)
+	do Extension.%Push(birthPlace)
 
 	//Extension - Comments
 	set commentsExtension  = ##class(%DynamicObject).%New()
-	set commentsExtensionContent = ##class(%DynamicObject).%New()
-	set commentsExtensionContent.url = "https://www.northerncarealliance.nhs.uk/fhir-profiles/PatientComments"
-	set commentsExtensionContent.value= "This is a comment"
-	do Extension.%Push(commentsExtensionContent)
+	set commentsExtension.url = "https://www.northerncarealliance.nhs.uk/fhir-profiles/PatientComments"
+	set commentsExtension.value= "This is a comment"
+	do Extension.%Push(commentsExtension)
 
 	// Extension - ethnicCategory
 	set ethnicCategory = ##class(%DynamicObject).%New()
-	set ethnicCategoryContent = ##class(%DynamicObject).%New()
-
-	set ethnicCategoryContent.url = "https://fhir.hl7.org.uk/StructureDefinition/Extension-UKCore-EthnicCategory" //!!! this link will import ethnic categories from wales and
+	set ethnicCategory.url = "https://fhir.hl7.org.uk/StructureDefinition/Extension-UKCore-EthnicCategory" //!!! this link will import ethnic categories from wales and
 	// and scotland as well!! Need to use england codes only?  "https://fhir.hl7.org.uk/CodeSystem/UKCore-EthnicCategoryEngland"
-	set ethnicCategoryContent.value = "Ethnicity"
+	set ethnicCategory.value = "Ethnicity"
 
-	do Extension.%Push(ethnicCategoryContent)
+	do Extension.%Push(ethnicCategory)
 
 	// Extension - patientReligion
 	set patientReligion = ##class(%DynamicObject).%New()
-	set patientReligionContent = ##class(%DynamicObject).%New()
+	set patientReligion.url = "http://hl7.org/fhir/StructureDefinition/patient-religion"
+	set patientReligion.value = "Religion Code"
 
-	set patientReligionContent.url = "http://hl7.org/fhir/StructureDefinition/patient-religion"
-	set patientReligionContent.value = "Religion Code"
-
-	do Extension.%Push(patientReligionContent)
+	do Extension.%Push(patientReligion)
 
 	//Extension - Nationality
 	set Nationality = ##class(%DynamicObject).%New()
-	set NationalityContent = ##class(%DynamicObject).%New()
+	set Nationality.url = "https://www.northerncarealliance.nhs.uk/fhir-profiles/patientNationality"
+	set Nationality.value = "AF"
 
-	set NationalityContent.url = "https://www.northerncarealliance.nhs.uk/fhir-profiles/patientNationality"
-	set NationalityContent.value = "AF"
-
-	do Extension.%Push(NationalityContent)
+	do Extension.%Push(Nationality)
 
 	//Extension - Occupation
 	set Occupation = ##class(%DynamicObject).%New()
-	set OccupationContent = ##class(%DynamicObject).%New()
+	set Occupation.url = "https://www.northerncarealliance.nhs.uk/fhir-profiles/patientOccupation"
+	set Occupation.value = "Nurse"
 
-	set OccupationContent.url = "https://www.northerncarealliance.nhs.uk/fhir-profiles/patientOccupation"
-	set OccupationContent.value = "Nurse"
-
-	do Extension.%Push(OccupationContent)
+	do Extension.%Push(Occupation)
 
 	//Extension - School
 	set School = ##class(%DynamicObject).%New()
-	set SchoolContent = ##class(%DynamicObject).%New()
+	set School.type = "edu"
+	set School.name = "School name"
+	set School.url = "https://www.northerncarealliance.nhs.uk/fhir-profiles/patientSchool"
 
-	set SchoolContent.type = "edu"
-	set SchoolContent.name = "School name"
-	set SchoolContent.url = "https://www.northerncarealliance.nhs.uk/fhir-profiles/patientSchool"
-
-	do Extension.%Push(SchoolContent)
+	do Extension.%Push(School)
 
 	//GP
 	set gpArray = ##class(%DynamicArray).%New()
@@ -465,7 +449,6 @@ Method GPPractitionerRoleResource() As %Status
 	set resource.organization = organizationArray
 
 	$$$TRACE("GPPractitionerRoleResource= "_resource.%ToJSON())
-
 
 	Quit tsc
 }
@@ -796,7 +779,6 @@ Method EncounterResource() As %Status
 	set resource.basedOn = Location
 
 	$$$TRACE("EncounterOutPatientResource= "_resource.%ToJSON())
-	
 
 	Quit tsc
 }
