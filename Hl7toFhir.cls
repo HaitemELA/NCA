@@ -778,7 +778,7 @@ Method EncounterResource() As %Status
 	set Location.reference = "location/0123456"
 	set resource.basedOn = Location
 
-	$$$TRACE("EncounterOutPatientResource= "_resource.%ToJSON())
+	$$$TRACE("EncounterResource= "_resource.%ToJSON())
 
 	Quit tsc
 }
