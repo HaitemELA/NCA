@@ -1,8 +1,6 @@
 Class NCA.Hl7toFhir2 Extends Ens.BusinessProcess [ ClassType = persistent ]
 {
 
-// Method CreateSubscription(MsgIn As EnsLib.HL7.Message, nhsNumber As %String, Output strmCont As Ens.StreamContainer) As %Status
-
 Method OnRequest(pRequest As EnsLib.HL7.Message, Output pArr As Ens.Response) As %Status
 {
 	set tsc = $$$OK
@@ -121,8 +119,8 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pArr As Ens.Response) As
 	set tsc = ..EncounterResource() // EncounterOutPatient
 
 	// ServiceRequest
-	do pArr.SetAt(pRequest.GetValueAt("FR1:2"), "SRstatus")
-	do pArr.SetAt(pRequest.GetValueAt("FR1:10"), "SRcategoryText")
+	do pArr.SetAt(pRequest.GetValueAt("RF1:2"), "SRstatus")
+	do pArr.SetAt(pRequest.GetValueAt("RF1:10"), "SRcategoryText")
 	set tsc = ..ServiceRequestResource(pArr) // EncounterOutPatient
 
 
@@ -859,7 +857,6 @@ Method ServiceRequestResource(pArr As Ens.Request) As %Status
 	set resource.locationReference = LocationReference
 
 	$$$TRACE("ServiceRequestResource= "_resource.%ToJSON())
-
 
 	quit tsc
 }
