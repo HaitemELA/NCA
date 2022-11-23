@@ -1,4 +1,4 @@
-Class NCA.Hl7toFhir Extends Ens.BusinessProcess [ ClassType = persistent ]
+Class NCA.Hl7toFhir2 Extends Ens.BusinessProcess [ ClassType = persistent ]
 {
 
 // Method CreateSubscription(MsgIn As EnsLib.HL7.Message, nhsNumber As %String, Output strmCont As Ens.StreamContainer) As %Status
@@ -20,7 +20,6 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pArr As Ens.Response) As
 			   	Set nhsNumber=(pRequest.GetValueAt("PID:3("_i_").1"))
 			   	Set nhsAssigner=(pRequest.GetValueAt("PID:3("_i_").4"))
 		   	}
-		;pRequest.GetValueAt("PID:3("_i_").4")="RW6" && 
 		If (pRequest.GetValueAt("PID:3("_i_").5")="DN")
 		   	{
 			   	Set LocalCode=(pRequest.GetValueAt("PID:3("_i_").1"))
@@ -121,6 +120,12 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pArr As Ens.Response) As
 	set tsc = ..EpisodeOfCareResource() //EpisodeOfCare
 	set tsc = ..EncounterResource() // EncounterOutPatient
 
+	// ServiceRequest
+	do pArr.SetAt(pRequest.GetValueAt("FR1:2"), "SRstatus")
+	do pArr.SetAt(pRequest.GetValueAt("FR1:10"), "SRcategoryText")
+	set tsc = ..ServiceRequestResource(pArr) // EncounterOutPatient
+
+
 	;$$$TRACE("pArr.Count(): "_pArr.Count())
 
 	quit tsc
@@ -198,20 +203,7 @@ Method PatientResource(pArr As Ens.Request) As %Status
 	set resource.gender = pArr.GetAt("resource.gender")
 
 	// BirthDate
-	/*
-	set dob  = ##class(%DynamicObject).%New()
-	set birthDateExtensionArray = ##class(%DynamicArray).%New()
-	set birthDateExtensionContent = ##class(%DynamicObject).%New()
-
-	set birthDateExtensionContent.url = "http://hl7.org/fhir/StructureDefinition/patient-birthTime"
-	set birthDateExtensionContent.valueDateTime = $ZDT($ZDATEH(pRequest.GetValueAt("PID:7.1"),5),3)_"T00:00:00-00:00"
-
-	do birthDateExtensionArray.%Push(birthDateExtensionContent)
-	set dob.extension = birthDateExtensionArray
-	*/
-
 	set resource.birthDate = pArr.GetAt("resource.birthDate")
-	;set resource.birthDate = dob
 
 	//Deceased
 	;set resource.deceasedBoolean = "true"
@@ -411,7 +403,42 @@ Method PatientResource(pArr As Ens.Request) As %Status
 	set strmCont=##class(Ens.StreamContainer).%New()
 	set strmCont.Stream=stream
 	*/
+
+	// Consent resource
+	if nhsNumber '= ""
+	{
+		set tsc = ..ConsentResource(nhsNumber)
+	} 
+
+	elseif LocalCode '= ""
+	{
+		set tsc = ..ConsentResource(LocalCode)
+	} 
 	
+	
+	Quit tsc
+}
+
+// Consent resource
+
+Method ConsentResource(pIdentifier As %String) As %Status
+{
+	set tsc=$$$OK
+	set resource = ##class(%DynamicObject).%New()
+	set resource.resourceType = "Consent"
+	set resource.status = "Active"
+	set resource.scope = "Patient-Privacy"
+	set resource.patient = pIdentifier
+
+	set policy = ##class(%DynamicArray).%New()
+	set policyContent = ##class(%DynamicObject).%New()
+	set policyContent.uri = "https://www.northerncarealliance.nhs.uk/fhir-profiles/smsconsentpolicy"
+	do policy.%Push(policyContent)
+
+	set resource.policy = policy
+
+	$$$TRACE("ConsentResource= "_resource.%ToJSON())
+
 	Quit tsc
 }
 
@@ -574,7 +601,6 @@ Method PractitionerResource(pArr As Ens.Request) As %Status
 Method OrganizationResource(pArr As Ens.Request) As %Status
 {
 	set tsc = $$$OK
-
 	set OdsCode = pArr.GetAt("odsOrganisationCode")
 
 	// Create a new resource
@@ -775,12 +801,67 @@ Method EncounterResource() As %Status
 
 	// Location
 	set Location = ##class(%DynamicObject).%New()
-	set Location.reference = "location/0123456"
-	set resource.basedOn = Location
+	set Location.reference = "Location/0123456"
+	set resource.location = Location
 
 	$$$TRACE("EncounterResource= "_resource.%ToJSON())
 
 	Quit tsc
+}
+
+Method ServiceRequestResource(pArr As Ens.Request) As %Status
+{
+	set tsc = $$$OK
+
+	set resource = ##class(%DynamicObject).%New()
+	set resource.resourceType = "Encounter"
+
+	// identifier
+	set identifier = ##class(%DynamicObject).%New()
+	set identifierArray = ##class(%DynamicArray).%New()
+	set identifierCoding = ##class(%DynamicObject).%New()
+	set identifierCoding.value = "########"
+
+	set identifierAssigner = ##class(%DynamicObject).%New()
+	set identifierAssignerArray = ##class(%DynamicArray).%New()
+	set identifierAssigner.reference = "Organization/RW6"
+	do identifierAssignerArray.%Push(identifierAssigner)
+
+	set identifierCoding.assigner = identifierAssignerArray
+	do identifierArray.%Push(identifierCoding)
+	set resource.identifier = identifierArray
+
+	//status
+	set resource.status = pArr.GetAt("SRstatus")
+	
+	// Priority
+	set tsc = ..CodebaleConcept("http://terminology.hl7.org/CodeSystem/v3-ActPriority", "A", "ASAP", .Priority, .Dynobject)
+	set resource.priority = Priority
+
+	//Category
+	set category = ##class(%DynamicArray).%New()
+	set category.text = pArr.GetAt("SRcategoryText")
+	set resource.category = category
+
+	// Subject
+	set Subject = ##class(%DynamicObject).%New()
+	set Subject.reference = "Patient/0123456"
+	set resource.subject = Subject
+
+	// Encounter
+	set Encounter = ##class(%DynamicObject).%New()
+	set Encounter.reference = "Encounter/0123456"
+	set resource.encounter = Encounter
+
+	// LocationReference
+	set LocationReference = ##class(%DynamicObject).%New()
+	set LocationReference.reference = "Location/0123456"
+	set resource.locationReference = LocationReference
+
+	$$$TRACE("ServiceRequestResource= "_resource.%ToJSON())
+
+
+	quit tsc
 }
 
 Method CodebaleConcept(pSystem As %String, pCode As %String, pDisplay As %String, Output pCodeConcept As %DynamicObject, Output pDynObject As %DynamicObject)
