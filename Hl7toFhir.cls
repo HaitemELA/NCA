@@ -123,7 +123,6 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pArr As Ens.Response) As
 	do pArr.SetAt(pRequest.GetValueAt("RF1:10"), "SRcategoryText")
 	set tsc = ..ServiceRequestResource(pArr) // EncounterOutPatient
 
-
 	;$$$TRACE("pArr.Count(): "_pArr.Count())
 
 	quit tsc
@@ -804,15 +803,17 @@ Method EncounterResource() As %Status
 
 	$$$TRACE("EncounterResource= "_resource.%ToJSON())
 
-	Quit tsc
+	quit tsc
 }
 
 Method ServiceRequestResource(pArr As Ens.Request) As %Status
 {
 	set tsc = $$$OK
+	
+	$$$TRACE("ServiceRequestResource= start")
 
 	set resource = ##class(%DynamicObject).%New()
-	set resource.resourceType = "Encounter"
+	set resource.resourceType = "ServiceRequest"
 
 	// identifier
 	set identifier = ##class(%DynamicObject).%New()
