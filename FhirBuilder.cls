@@ -150,9 +150,33 @@ Method BundleBuilder(pArr As Ens.Request) As %Status
     set entryArray = ##class(%DynamicArray).%New()
 
     set tsc = ..PatientResource(pArr, .pPatientResource)
-    Set resourceElement = ##class(%DynamicObject).%New()
-    set resourceElement.resource = pPatientResource
-    do entryArray.%Push(resourceElement)
+
+    set nhsNumber = pArr.GetAt("NhsNumberContent.value")
+    set LocalCode = pArr.GetAt("LocalCode")
+
+    if nhsNumber '= ""
+    {
+        set tsc = ..ConsentResource(nhsNumber, .pConsentResource)
+        set tsc = ..FlagResource(nhsNumber, .pFlagResource)
+    }
+    elseif LocalCode '= ""
+    {
+        set tsc = ..ConsentResource(LocalCode, .pConsentResource)
+        set tsc = ..FlagResource(LocalCode, .pFlagResource)
+    }
+
+    Set resourceElement1 = ##class(%DynamicObject).%New()
+    set resourceElement1.resource = pPatientResource
+    do entryArray.%Push(resourceElement1)
+
+    Set resourceElement2 = ##class(%DynamicObject).%New()
+    set resourceElement2.resource = pConsentResource
+    do entryArray.%Push(resourceElement2)
+
+    Set resourceElement3 = ##class(%DynamicObject).%New()
+    set resourceElement3.resource = pFlagResource
+    do entryArray.%Push(resourceElement3)
+
     set bundle.entry = entryArray
  
     $$$TRACE("Bundle= "_bundle.%ToJSON())
@@ -187,7 +211,7 @@ Method PatientResource(pArr As Ens.Request, Output pPatientResource As %DynamicO
 	
 	//ODS-Local: skip if the inbound HL7 doesn't have it
     set LocalCode = pArr.GetAt("LocalCode")
-	if LocalCode
+	if LocalCode '= ""
 	{
 		set LocalContent = ##class(%DynamicObject).%New()
 		set LocalContent.system = "ODS-Local"
@@ -235,7 +259,7 @@ Method PatientResource(pArr As Ens.Request, Output pPatientResource As %DynamicO
 	//maritalStatus
 	Set maritalStatus = ##class(%DynamicObject).%New()
 
-	set tsc = ..CodebaleConcept("http://terminology.hl7.org/CodeSystem/v3-MaritalStatus", "M", "Married", .maritalSt, .DynObject)
+	set tsc = ..CodeableConcept("http://terminology.hl7.org/CodeSystem/v3-MaritalStatus", "M", "Married", .maritalSt, .DynObject)
 	set resource.maritalStatus = maritalSt
 
 	// Address
@@ -248,13 +272,13 @@ Method PatientResource(pArr As Ens.Request, Output pPatientResource As %DynamicO
     {
         do addressLinesArray.%Push(pArr.GetAt("addressLines2"))
     }
-
+    do addressLinesArray.%Push(pArr.GetAt("addressCity"))
 	set addressContent.line = addressLinesArray
-	set addressContent.city = pArr.GetAt("addressCity")
+
 	set addressContent.postalCode = pArr.GetAt("addressPostCode")
     set addressContent.country = "UK"
-
 	do addressArray.%Push(addressContent)
+
 	set resource.address = addressArray
 
 	//telecom
@@ -276,7 +300,6 @@ Method PatientResource(pArr As Ens.Request, Output pPatientResource As %DynamicO
 		set emailContent.value = pArr.GetAt("emailContent.value")
 		set emailContent.use = "work"
 		do telecomArray.%Push(emailContent)
-
 	}
 
 	set resource.telecom = telecomArray
@@ -436,23 +459,61 @@ Method PatientResource(pArr As Ens.Request, Output pPatientResource As %DynamicO
 
 // Consent resource
 
-Method ConsentResource(pIdentifier As %String) As %Status
+Method ConsentResource(pIdentifier As %String, Output pConsentResource As %DynamicObject) As %Status
 {
 	set tsc=$$$OK
 	set resource = ##class(%DynamicObject).%New()
 	set resource.resourceType = "Consent"
-	set resource.status = "Active"
-	set resource.scope = "Patient-Privacy"
-	set resource.patient = pIdentifier
+	set resource.status = "active"
+    // Scope
+    set tsc = ..CodeableConcept("http://hl7.org/fhir/ValueSet/consent-scope", "adr", "Advanced Care Directive", .pCoding, .content)
+	set resource.scope = pCoding
 
-	set policy = ##class(%DynamicArray).%New()
+    // Patient
+	set PatientRef = ##class(%DynamicObject).%New()
+	set PatientRef.reference = "Patient/"_pIdentifier
+	set resource.patient = PatientRef
+
+    // Policy
+	set policyArray = ##class(%DynamicArray).%New()
 	set policyContent = ##class(%DynamicObject).%New()
 	set policyContent.uri = "https://www.northerncarealliance.nhs.uk/fhir-profiles/smsconsentpolicy"
-	do policy.%Push(policyContent)
+	do policyArray.%Push(policyContent)
+	set resource.policy = policyArray
 
-	set resource.policy = policy
+    // Category
+    set tsc = ..CodeableConcept("http://terminology.hl7.org/CodeSystem/v3-ActCode", "ICOL", "information collection", .pCategory, .content)
+	set resource.category = pCategory
 
 	$$$TRACE("ConsentResource= "_resource.%ToJSON())
+
+    set pConsentResource = resource
+
+	Quit tsc
+}
+
+Method FlagResource(pIdentifier As %String, Output pFlagResource As %DynamicObject) As %Status
+{
+	set tsc=$$$OK
+	set resource = ##class(%DynamicObject).%New()
+	set resource.resourceType = "Flag"
+	set resource.status = "active"
+    // Code
+    set tsc = ..CodeableConcept("http://snomed.info/sct", "226201008", "Peanut-free diet", .pCoding, .content)
+	set resource.code = pCoding
+
+    // Subject
+	set Subject = ##class(%DynamicObject).%New()
+	set Subject.reference = "patient/"_pIdentifier
+	set resource.subject = Subject
+
+    // Category
+    set tsc = ..CodeableConcept("http://terminology.hl7.org/CodeSystem/flag-category", "diet", "Diet", .pCategory, .content)
+	set resource.category = pCategory
+
+	$$$TRACE("FlagResource= "_resource.%ToJSON())
+
+    set pFlagResource = resource
 
 	Quit tsc
 }
@@ -469,7 +530,7 @@ Method GPPractitionerRoleResource() As %Status
 	set specialty = ##class(%DynamicObject).%New()
 	set specialtyArray = ##class(%DynamicArray).%New()
 
-	set tsc = ..CodebaleConcept("http://snomed.info/sct", "394814009", "General practice", .class, .specialtyCoding)
+	set tsc = ..CodeableConcept("http://snomed.info/sct", "394814009", "General practice", .class, .specialtyCoding)
 
 	do specialtyArray.%Push(specialtyCoding)
 	set specialty.coding = specialtyArray
@@ -508,13 +569,13 @@ Method PractitionerRoleResource() As %Status
 	set specialtyArray = ##class(%DynamicArray).%New()
 	set specialtyCoding = ##class(%DynamicObject).%New()
 
-	set tsc = ..CodebaleConcept("LocalSpecialty-RW6_OR_LocalSpecialty-RM3", "######", "######", .class, .specialtyCoding)
+	set tsc = ..CodeableConcept("LocalSpecialty-RW6_OR_LocalSpecialty-RM3", "######", "######", .class, .specialtyCoding)
 	do specialtyArray.%Push(specialtyCoding)
 
-	set tsc = ..CodebaleConcept("https://www.datadictionary.nhs.uk/attributes/main_specialty_code.html", "######", "######", .class, .specialtyCoding)
+	set tsc = ..CodeableConcept("https://www.datadictionary.nhs.uk/attributes/main_specialty_code.html", "######", "######", .class, .specialtyCoding)
 	do specialtyArray.%Push(specialtyCoding)
 
-	set tsc = ..CodebaleConcept("https://www.datadictionary.nhs.uk/supporting_information/main_specialty_and_treatment_function_codes_table.html", "######", "######", .class, .specialtyCoding)
+	set tsc = ..CodeableConcept("https://www.datadictionary.nhs.uk/supporting_information/main_specialty_and_treatment_function_codes_table.html", "######", "######", .class, .specialtyCoding)
 	do specialtyArray.%Push(specialtyCoding)
 
 	set specialty.coding = specialtyArray
@@ -672,7 +733,7 @@ Method LocationResource() As %Status
 	set resource.identifier = identifierArray
 
 	// PhysicalType
-	set tsc = ..CodebaleConcept("https://terminology.hl7.org/4.0.0/CodeSystem-location-physical-type.html", "######", "", .physicalType, .specialtyCoding)
+	set tsc = ..CodeableConcept("https://terminology.hl7.org/4.0.0/CodeSystem-location-physical-type.html", "######", "", .physicalType, .specialtyCoding)
 	set resource.physicalType = physicalType
 
 	// Name
@@ -755,15 +816,15 @@ Method EncounterResource() As %Status
 	set resource.statusHistory = stHist
 
 	// Class
-	set tsc = ..CodebaleConcept("https://simplifier.net/packages/hl7.fhir.r4.core/4.0.1/files/80998/~overview", "AMB", "ambulatory", .pCodeConcept, .class)
+	set tsc = ..CodeableConcept("https://simplifier.net/packages/hl7.fhir.r4.core/4.0.1/files/80998/~overview", "AMB", "ambulatory", .pCodeConcept, .class)
 	set resource.class = class
 
 	// ServiceType
-	set tsc = ..CodebaleConcept("http://snomed.info/sct", "736622005", "Aboriginal health service", .ServiceType, .Dynobject)
+	set tsc = ..CodeableConcept("http://snomed.info/sct", "736622005", "Aboriginal health service", .ServiceType, .Dynobject)
 	set resource.serviceType = ServiceType
 
 	// Priority
-	set tsc = ..CodebaleConcept("http://terminology.hl7.org/CodeSystem/v3-ActPriority", "A", "ASAP", .Priority, .Dynobject)
+	set tsc = ..CodeableConcept("http://terminology.hl7.org/CodeSystem/v3-ActPriority", "A", "ASAP", .Priority, .Dynobject)
 	set resource.priority = Priority
 
 	// Subject
@@ -786,7 +847,7 @@ Method EncounterResource() As %Status
 	set participantTypeArray = ##class(%DynamicArray).%New()
 	set participantType = ##class(%DynamicObject).%New()
 
-	set tsc = ..CodebaleConcept("http://terminology.hl7.org/CodeSystem/v3-ParticipationType", "ATND", "attender", .partType, .Dynobject)
+	set tsc = ..CodeableConcept("http://terminology.hl7.org/CodeSystem/v3-ParticipationType", "ATND", "attender", .partType, .Dynobject)
 	do participantTypeArray.%Push(partType)
 	set participantType.type = participantTypeArray
 	do participantArray.%Push(participantType)
@@ -829,7 +890,7 @@ Method ServiceRequestResource(pArr As Ens.Request) As %Status
 	set resource.status = pArr.GetAt("SRstatus")
 	
 	// Priority
-	set tsc = ..CodebaleConcept("http://terminology.hl7.org/CodeSystem/v3-ActPriority", "A", "ASAP", .Priority, .Dynobject)
+	set tsc = ..CodeableConcept("http://terminology.hl7.org/CodeSystem/v3-ActPriority", "A", "ASAP", .Priority, .Dynobject)
 	set resource.priority = Priority
 
 	//Category
@@ -857,7 +918,7 @@ Method ServiceRequestResource(pArr As Ens.Request) As %Status
 	quit tsc
 }
 
-Method CodebaleConcept(pSystem As %String, pCode As %String, pDisplay As %String, Output pCodeConcept As %DynamicObject, Output pDynObject As %DynamicObject)
+Method CodeableConcept(pSystem As %String, pCode As %String, pDisplay As %String, Output pCodeConcept As %DynamicObject, Output pDynObject As %DynamicObject)
 {
 	set tsc = $$$OK
 
