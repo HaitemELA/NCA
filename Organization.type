@@ -1,0 +1,28 @@
+{
+   "resourceType":"Organization",
+   "identifier":[
+      {
+         "system":"https://www.northerncarealliance.nhs.uk/ODS-LOCAL",
+         "use":"official",
+         "value":"P85005"
+      }
+   ],
+   "name":"LEESBROOK SURGERY",
+   "telecom":[
+      {
+         "system":"phone",
+         "value":"01234567890",
+         "use":"home"
+      }
+   ],
+   "address":[
+      {
+         "line":[
+            "Organization address Line1",
+            "Organization address Line2",
+            "Organization City"
+         ],
+         "postalCode":"Organization PostCode"
+      }
+   ]
+}
