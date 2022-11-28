@@ -530,24 +530,20 @@ Method GPPractitionerRoleResource(pArr As Ens.Request) As %Status
 	set specialtyArray = ##class(%DynamicArray).%New()
 
 	set tsc = ..CodeableConcept("http://snomed.info/sct", "394814009", "General practice", .class, .specialtyCoding)
-
 	do specialtyArray.%Push(specialtyCoding)
 	set specialty.coding = specialtyArray
-
 	set resource.specialty = specialty
 
 	set practitionerArray = ##class(%DynamicArray).%New()
 	set practitioner = ##class(%DynamicObject).%New()
 	set practitioner.reference = "Practitioner/"_pArr.GetAt("NationalCode")
 	do practitionerArray.%Push(practitioner)
-
 	set resource.practitioner = practitionerArray
 
 	set organizationArray = ##class(%DynamicArray).%New()
 	set organization = ##class(%DynamicObject).%New()
 	set organization.reference = "Organization/"_pArr.GetAt("odsOrganisationCode")
 	do organizationArray.%Push(organization)
-
 	set resource.organization = organizationArray
 
 	$$$TRACE("GPPractitionerRoleResource= "_resource.%ToJSON())
@@ -568,24 +564,23 @@ Method PractitionerRoleResource(pArr As Ens.Request) As %Status
 	set specialtyArray = ##class(%DynamicArray).%New()
 	set specialtyCoding = ##class(%DynamicObject).%New()
 
-	set tsc = ..CodeableConcept("LocalSpecialty-RW6_OR_LocalSpecialty-RM3", "######", "######", .class, .specialtyCoding)
-	do specialtyArray.%Push(specialtyCoding)
+	set tsc = ..CodeableConcept("LocalSpecialty-RW6_OR_LocalSpecialty-RM3", "######", "######", .class, .specialtyCoding1)
+	do specialtyArray.%Push(specialtyCoding1)
 
-	set tsc = ..CodeableConcept("https://www.datadictionary.nhs.uk/attributes/main_specialty_code.html", "######", "######", .class, .specialtyCoding)
-	do specialtyArray.%Push(specialtyCoding)
+	set tsc = ..CodeableConcept("https://www.datadictionary.nhs.uk/attributes/main_specialty_code.html",
+                                "######", "######", .class, .specialtyCoding2)
+	do specialtyArray.%Push(specialtyCoding2)
 
-	set tsc = ..CodeableConcept("https://www.datadictionary.nhs.uk/supporting_information/main_specialty_and_treatment_function_codes_table.html", "######", "######", .class, .specialtyCoding)
-	do specialtyArray.%Push(specialtyCoding)
-
+	set tsc = ..CodeableConcept("https://www.datadictionary.nhs.uk/supporting_information/main_specialty_and_treatment_function_codes_table.html",
+                                "######", "######", .class, .specialtyCoding3)
+	do specialtyArray.%Push(specialtyCoding3)
 	set specialty.coding = specialtyArray
-
 	set resource.specialty = specialty
 
 	set practitionerArray = ##class(%DynamicArray).%New()
 	set practitioner = ##class(%DynamicObject).%New()
 	set practitioner.reference = "Practitioner/"_pArr.GetAt("NationalCode")
 	do practitionerArray.%Push(practitioner)
-
 	set resource.practitioner = practitionerArray
 
 	$$$TRACE("PractitionerRoleResource= "_resource.%ToJSON())
