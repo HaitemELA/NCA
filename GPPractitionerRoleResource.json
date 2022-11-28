@@ -1,0 +1,22 @@
+{
+   "resourceType":"PractitionerRole",
+   "specialty":{
+      "coding":[
+         {
+            "system":"http://snomed.info/sct",
+            "code":"394814009",
+            "display":"General practice"
+         }
+      ]
+   },
+   "practitioner":[
+      {
+         "reference":"Practitioner/G3298440"
+      }
+   ],
+   "organization":[
+      {
+         "reference":"Organization/P85005"
+      }
+   ]
+}

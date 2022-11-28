@@ -100,35 +100,32 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pArr As Ens.Response) As
 		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):4.5"), "ContactAddressContent.postalCode"_j)
 	}
 
-	set tsc = ..PatientResource(pArr) // Patient
-	set tsc = ..GPPractitionerRoleResource(pArr) //GPPractitionerRole
-	set tsc = ..PractitionerRoleResource(pArr) //PractitionerRole
-
 	// Practitioner
 	do pArr.SetAt(pRequest.GetValueAt("PD1:4.10"), "PASLocal")
 	do pArr.SetAt(pRequest.GetValueAt("PD1:4.1"), "NationalCode")
 	do pArr.SetAt(pRequest.GetValueAt("PD1:4.2"), "GPFamilyName")
 	do pArr.SetAt(pRequest.GetValueAt("PD1:4.3"), "GPGivenName")
 	do pArr.SetAt(pRequest.GetValueAt("PD1:4.6"), "GPPrefix")
-
-	set tsc = ..PractitionerResource(pArr)
 	
 	// Organization
 	do pArr.SetAt(pRequest.GetValueAt("PD1:3.3"), "odsOrganisationCode") //PD1:3.3 is for practitioner or Organization?
 	do pArr.SetAt(pRequest.GetValueAt("PD1:3.1"), "OrganisationName")
-	set tsc = ..OrganizationResource(pArr)
-	
-	set tsc = ..LocationResource() // Location
-	set tsc = ..EpisodeOfCareResource() //EpisodeOfCare
-	set tsc = ..EncounterResource() // EncounterOutPatient
 
 	// ServiceRequest
 	do pArr.SetAt(pRequest.GetValueAt("RF1:2"), "SRstatus")
 	do pArr.SetAt(pRequest.GetValueAt("RF1:10"), "SRcategoryText")
-	set tsc = ..ServiceRequestResource(pArr) // EncounterOutPatient
 
-    // Bundle
-	set tsc = ..BundleBuilder(pArr)
+	set tsc = ..PatientResource(pArr) // Patient
+	set tsc = ..GPPractitionerRoleResource(pArr) //GPPractitionerRole
+	set tsc = ..PractitionerRoleResource(pArr) //PractitionerRole
+	set tsc = ..PractitionerResource(pArr) //Practitioner
+	set tsc = ..OrganizationResource(pArr) // Organization
+	set tsc = ..LocationResource() // Location
+	set tsc = ..EpisodeOfCareResource() //EpisodeOfCare
+	set tsc = ..EncounterResource() // EncounterOutPatient
+	set tsc = ..ServiceRequestResource(pArr) // ServiceRequest
+
+	set tsc = ..BundleBuilder(pArr) // Bundle
 
 	;$$$TRACE("pArr.Count(): "_pArr.Count())
 
@@ -445,11 +442,13 @@ Method PatientResource(pArr As Ens.Request, Output pPatientResource As %DynamicO
 	if nhsNumber '= ""
 	{
 		set tsc = ..ConsentResource(nhsNumber)
+		set tsc = ..FlagResource(nhsNumber)
 	} 
 
 	elseif LocalCode '= ""
 	{
 		set tsc = ..ConsentResource(LocalCode)
+		set tsc = ..FlagResource(LocalCode)
 	} 
 
     set pPatientResource = resource
@@ -584,7 +583,7 @@ Method PractitionerRoleResource(pArr As Ens.Request) As %Status
 
 	set practitionerArray = ##class(%DynamicArray).%New()
 	set practitioner = ##class(%DynamicObject).%New()
-	set practitioner.reference = "Practitioner"_pArr.GetAt("NationalCode")
+	set practitioner.reference = "Practitioner/"_pArr.GetAt("NationalCode")
 	do practitionerArray.%Push(practitioner)
 
 	set resource.practitioner = practitionerArray
@@ -622,7 +621,6 @@ Method PractitionerResource(pArr As Ens.Request) As %Status
 		set PASLocalContent.system = "https://www.northerncarealliance.nhs.uk/PAS-LOCAL"
 		set PASLocalContent.value = PASLocal
 		set PASLocalContent.assigner = ..AssignerBuilder("Organization/RW6orRM3")
-
 
 		do identifierArray.%Push(PASLocalContent)
 	}
