@@ -101,8 +101,8 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pArr As Ens.Response) As
 	}
 
 	set tsc = ..PatientResource(pArr) // Patient
-	set tsc = ..GPPractitionerRoleResource() //GPPractitionerRole
-	set tsc = ..PractitionerRoleResource() //PractitionerRole
+	set tsc = ..GPPractitionerRoleResource(pArr) //GPPractitionerRole
+	set tsc = ..PractitionerRoleResource(pArr) //PractitionerRole
 
 	// Practitioner
 	do pArr.SetAt(pRequest.GetValueAt("PD1:4.10"), "PASLocal")
@@ -114,7 +114,7 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pArr As Ens.Response) As
 	set tsc = ..PractitionerResource(pArr)
 	
 	// Organization
-	do pArr.SetAt(pRequest.GetValueAt("PD1:3.3"), "odsOrganisationCode")
+	do pArr.SetAt(pRequest.GetValueAt("PD1:3.3"), "odsOrganisationCode") //PD1:3.3 is for practitioner or Organization?
 	do pArr.SetAt(pRequest.GetValueAt("PD1:3.1"), "OrganisationName")
 	set tsc = ..OrganizationResource(pArr)
 	
@@ -431,7 +431,7 @@ Method PatientResource(pArr As Ens.Request, Output pPatientResource As %DynamicO
 	//GP
 	set gpArray = ##class(%DynamicArray).%New()
 	set gpContent  = ##class(%DynamicObject).%New()
-	set gpContent.reference = "Practitioner/practitioner1"
+	set gpContent.reference = "Practitioner/"_pArr.GetAt("NationalCode")
 	do gpArray.%Push(gpContent)
 
 	set resource.generalPractitioner = gpArray
@@ -520,7 +520,7 @@ Method FlagResource(pIdentifier As %String, Output pFlagResource As %DynamicObje
 
 // GPPractitionerRole resource
 
-Method GPPractitionerRoleResource() As %Status
+Method GPPractitionerRoleResource(pArr As Ens.Request) As %Status
 {
 	set tsc = $$$OK
 
@@ -539,14 +539,14 @@ Method GPPractitionerRoleResource() As %Status
 
 	set practitionerArray = ##class(%DynamicArray).%New()
 	set practitioner = ##class(%DynamicObject).%New()
-	set practitioner.reference = "Practitioner/practitioner1"
+	set practitioner.reference = "Practitioner/"_pArr.GetAt("NationalCode")
 	do practitionerArray.%Push(practitioner)
 
 	set resource.practitioner = practitionerArray
 
 	set organizationArray = ##class(%DynamicArray).%New()
 	set organization = ##class(%DynamicObject).%New()
-	set organization.reference = "Organization/Organization1"
+	set organization.reference = "Organization/"_pArr.GetAt("odsOrganisationCode")
 	do organizationArray.%Push(organization)
 
 	set resource.organization = organizationArray
@@ -558,7 +558,7 @@ Method GPPractitionerRoleResource() As %Status
 
 // PractitionerRole
 
-Method PractitionerRoleResource() As %Status
+Method PractitionerRoleResource(pArr As Ens.Request) As %Status
 {
 	set tsc = $$$OK
 
@@ -584,7 +584,7 @@ Method PractitionerRoleResource() As %Status
 
 	set practitionerArray = ##class(%DynamicArray).%New()
 	set practitioner = ##class(%DynamicObject).%New()
-	set practitioner.reference = "Practitioner/practitioner1"
+	set practitioner.reference = "Practitioner"_pArr.GetAt("NationalCode")
 	do practitionerArray.%Push(practitioner)
 
 	set resource.practitioner = practitionerArray
