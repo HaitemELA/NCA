@@ -1,0 +1,27 @@
+{
+   "resourceType":"PractitionerRole",
+   "specialty":{
+      "coding":[
+         {
+            "system":"LocalSpecialty-RW6_OR_LocalSpecialty-RM3",
+            "code":"######",
+            "display":"######"
+         },
+         {
+            "system":"https://www.datadictionary.nhs.uk/attributes/main_specialty_code.html",
+            "code":"######",
+            "display":"######"
+         },
+         {
+            "system":"https://www.datadictionary.nhs.uk/supporting_information/main_specialty_and_treatment_function_codes_table.html",
+            "code":"######",
+            "display":"######"
+         }
+      ]
+   },
+   "practitioner":[
+      {
+         "reference":"Practitioner/G3298440"
+      }
+   ]
+}
