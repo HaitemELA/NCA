@@ -120,6 +120,8 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pArr As Ens.Response) As
 	do pArr.SetAt(pRequest.GetValueAt("LOC:3"), "LocationType")
 	do pArr.SetAt(pRequest.GetValueAt("LOC:4"), "LocationName")
 
+    // Episode Of Care
+	do pArr.SetAt(pRequest.GetValueAt("EVN:2"), "EpisodeOfCareValue")
 
     // Build resrouces
 	set tsc = ..PatientResource(pArr) // Patient
@@ -127,8 +129,8 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pArr As Ens.Response) As
 	set tsc = ..PractitionerRoleResource(pArr) //PractitionerRole
 	set tsc = ..PractitionerResource(pArr) //Practitioner
 	set tsc = ..OrganizationResource(pArr) // Organization
-	set tsc = ..LocationResource() // Location
-	set tsc = ..EpisodeOfCareResource() //EpisodeOfCare
+	set tsc = ..LocationResource(pArr) // Location
+	set tsc = ..EpisodeOfCareResource(pArr) //EpisodeOfCare
 	set tsc = ..EncounterResource() // EncounterOutPatient
 	set tsc = ..ServiceRequestResource(pArr) // ServiceRequest
 
@@ -745,7 +747,7 @@ Method LocationResource(pArr As Ens.Request) As %Status
 
 	set LocationCodeContent1 = ##class(%DynamicObject).%New()
 	set LocationCodeContent1.system = "https://fhir.nhs.uk/Id/ods-site-code"
-	set LocationCodeContent1.value = pArr.GetAt("LocationCode")
+    set LocationCodeContent1.value = pArr.GetAt("LocationCode")
 	do identifierArray.%Push(LocationCodeContent1)
 
 	set LocationCodeContent2 = ##class(%DynamicObject).%New()
@@ -761,7 +763,7 @@ Method LocationResource(pArr As Ens.Request) As %Status
 	set resource.physicalType = physicalType
 
 	// Name
-	set resource.name = pArr.GetAt("LocationName")
+    set resource.name = pArr.GetAt("LocationName")
 
 	$$$TRACE("Location= "_resource.%ToJSON())
 
@@ -770,7 +772,7 @@ Method LocationResource(pArr As Ens.Request) As %Status
 
 // EpisodeOfCare resource
 
-Method EpisodeOfCareResource() As %Status
+Method EpisodeOfCareResource(pArr As Ens.Request) As %Status
 {
 	set tsc = $$$OK
 	set resource = ##class(%DynamicObject).%New()
@@ -780,8 +782,8 @@ Method EpisodeOfCareResource() As %Status
 	set identifierArray = ##class(%DynamicArray).%New()
 	set identifierCoding = ##class(%DynamicObject).%New()
 	set identifierCoding.system = "Local Episode Id"
-	set identifierCoding.value = "########"
-	set identifierCoding.assigner = ..AssignerBuilder("Organization/RW6")
+	set identifierCoding.value = pArr.GetAt("EpisodeOfCareValue")
+	set identifierCoding.assigner = ..AssignerBuilder("Organization/RW6orRM3")
 
 	do identifierArray.%Push(identifierCoding)
 	set resource.identifier = identifierArray
@@ -791,7 +793,15 @@ Method EpisodeOfCareResource() As %Status
 	; TBD: EpisodeOfCare.type
 	
 	set PatientReference = ##class(%DynamicObject).%New()
-	set PatientReference.reference = "Patient/0123456"
+    if pArr.GetAt("NhsNumberContent.value") '= ""
+    {
+        set PatientReference.reference = "Patient/"_pArr.GetAt("NhsNumberContent.value")
+    }
+	elseif pArr.GetAt("LocalCode") '= ""
+    {
+        set PatientReference.reference = "Patient/"_pArr.GetAt("LocalCode")
+    }
+	
 	set resource.patient = PatientReference
 
 	set tsc = ..SetPeriod("2022-11-01", "2022-11-10", .period)

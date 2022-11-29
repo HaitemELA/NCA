@@ -1,0 +1,22 @@
+{
+   "resourceType":"EpisodeOfCare",
+   "identifier":[
+      {
+         "system":"Local Episode Id",
+         "value":"20140513135525",
+         "assigner":[
+            {
+               "reference":"Organization/RW6orRM3"
+            }
+         ]
+      }
+   ],
+   "status":"active",
+   "patient":{
+      "reference":"Patient/9876543210"
+   },
+   "period":{
+      "start":"2022-11-01",
+      "end":"2022-11-10"
+   }
+}
