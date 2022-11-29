@@ -781,7 +781,7 @@ Method EpisodeOfCareResource(pArr As Ens.Request) As %Status
 	set identifier = ##class(%DynamicObject).%New()
 	set identifierArray = ##class(%DynamicArray).%New()
 	set identifierCoding = ##class(%DynamicObject).%New()
-	set identifierCoding.system = "Local Episode Id"
+	set identifierCoding.system = "LocalEpisodeId"
 	set identifierCoding.value = pArr.GetAt("EpisodeOfCareValue")
 	set identifierCoding.assigner = ..AssignerBuilder("Organization/RW6orRM3")
 
