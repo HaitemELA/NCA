@@ -773,15 +773,13 @@ Method LocationResource(pArr As Ens.Request) As %Status
 Method EpisodeOfCareResource() As %Status
 {
 	set tsc = $$$OK
-
 	set resource = ##class(%DynamicObject).%New()
 	set resource.resourceType = "EpisodeOfCare"
 
 	set identifier = ##class(%DynamicObject).%New()
 	set identifierArray = ##class(%DynamicArray).%New()
-
 	set identifierCoding = ##class(%DynamicObject).%New()
-	set identifierCoding.system = " LocalEpisodeId"
+	set identifierCoding.system = "Local Episode Id"
 	set identifierCoding.value = "########"
 	set identifierCoding.assigner = ..AssignerBuilder("Organization/RW6")
 
