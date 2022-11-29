@@ -2,7 +2,7 @@
    "resourceType":"EpisodeOfCare",
    "identifier":[
       {
-         "system":"Local Episode Id",
+         "system":"LocalEpisodeId",
          "value":"20140513135525",
          "assigner":[
             {
