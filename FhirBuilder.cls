@@ -115,6 +115,13 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pArr As Ens.Response) As
 	do pArr.SetAt(pRequest.GetValueAt("RF1:2"), "SRstatus")
 	do pArr.SetAt(pRequest.GetValueAt("RF1:10"), "SRcategoryText")
 
+    // Location
+	do pArr.SetAt(pRequest.GetValueAt("LOC:2"), "LocationCode")
+	do pArr.SetAt(pRequest.GetValueAt("LOC:3"), "LocationType")
+	do pArr.SetAt(pRequest.GetValueAt("LOC:4"), "LocationName")
+
+
+    // Build resrouces
 	set tsc = ..PatientResource(pArr) // Patient
 	set tsc = ..GPPractitionerRoleResource(pArr) //GPPractitionerRole
 	set tsc = ..PractitionerRoleResource(pArr) //PractitionerRole
@@ -273,7 +280,7 @@ Method PatientResource(pArr As Ens.Request, Output pPatientResource As %DynamicO
 	set addressContent.line = addressLinesArray
 
 	set addressContent.postalCode = pArr.GetAt("addressPostCode")
-    set addressContent.country = "UK"
+    ;set addressContent.country = "UK"
 	do addressArray.%Push(addressContent)
 
 	set resource.address = addressArray
@@ -691,6 +698,31 @@ Method OrganizationResource(pArr As Ens.Request) As %Status
 	set resource.identifier = identifierArray
 	set resource.name = pArr.GetAt("OrganisationName")
 
+    // telecom: Need to lookUp?
+    set telecomArray = ##class(%DynamicArray).%New()
+	set phoneContent = ##class(%DynamicObject).%New()
+    set phoneContent.system = "phone"
+	set phoneContent.value = "01234567890"
+	set phoneContent.use = "home"
+	do telecomArray.%Push(phoneContent)
+
+    set resource.telecom = telecomArray
+
+    // Address: Need to lookUp?
+	set addressArray = ##class(%DynamicArray).%New()
+	set addressContent = ##class(%DynamicObject).%New()
+
+	set addressLinesArray = ##class(%DynamicArray).%New() // for address lines
+	do addressLinesArray.%Push("Organization address Line1")
+    do addressLinesArray.%Push("Organization address Line2")
+    do addressLinesArray.%Push("Organization City")
+	set addressContent.line = addressLinesArray
+
+	set addressContent.postalCode = "Organization PostCode"
+	do addressArray.%Push(addressContent)
+
+	set resource.address = addressArray
+
 	$$$TRACE("Organization= "_resource.%ToJSON())
 
 	Quit tsc
@@ -698,7 +730,7 @@ Method OrganizationResource(pArr As Ens.Request) As %Status
 
 // Location resource
 
-Method LocationResource() As %Status
+Method LocationResource(pArr As Ens.Request) As %Status
 {
 	set tsc = $$$OK
 
@@ -713,24 +745,23 @@ Method LocationResource() As %Status
 
 	set LocationCodeContent1 = ##class(%DynamicObject).%New()
 	set LocationCodeContent1.system = "https://fhir.nhs.uk/Id/ods-site-code"
-	set LocationCodeContent1.value = "########"
+	set LocationCodeContent1.value = pArr.GetAt("LocationCode")
 	do identifierArray.%Push(LocationCodeContent1)
 
 	set LocationCodeContent2 = ##class(%DynamicObject).%New()
 	set LocationCodeContent2.system = "https://fhir.nhs.uk/Id/ods-site-code"
 	set LocationCodeContent2.value = "########"
-	set LocationCodeContent2.assigner = ..AssignerBuilder("Organization/RW6")
-
+	set LocationCodeContent2.assigner = ..AssignerBuilder("Organization/RW6orRM3")
 	do identifierArray.%Push(LocationCodeContent2)
 
 	set resource.identifier = identifierArray
 
 	// PhysicalType
-	set tsc = ..CodeableConcept("https://terminology.hl7.org/4.0.0/CodeSystem-location-physical-type.html", "######", "", .physicalType, .specialtyCoding)
+	set tsc = ..CodeableConcept("https://terminology.hl7.org/4.0.0/CodeSystem-location-physical-type.html", pArr.GetAt("LocationType"), "", .physicalType, .specialtyCoding)
 	set resource.physicalType = physicalType
 
 	// Name
-	set resource.name = "########"
+	set resource.name = pArr.GetAt("LocationName")
 
 	$$$TRACE("Location= "_resource.%ToJSON())
 

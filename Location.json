@@ -1,0 +1,28 @@
+{
+   "resourceType":"Location",
+   "identifier":[
+      {
+         "system":"https://fhir.nhs.uk/Id/ods-site-code",
+         "value":"########"
+      },
+      {
+         "system":"https://fhir.nhs.uk/Id/ods-site-code",
+         "value":"########",
+         "assigner":[
+            {
+               "reference":"Organization/RW6"
+            }
+         ]
+      }
+   ],
+   "physicalType":{
+      "coding":[
+         {
+            "system":"https://terminology.hl7.org/4.0.0/CodeSystem-location-physical-type.html",
+            "code":"######",
+            "display":""
+         }
+      ]
+   },
+   "name":"########"
+}
