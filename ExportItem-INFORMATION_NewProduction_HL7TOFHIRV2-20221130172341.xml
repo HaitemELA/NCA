@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Export generator="IRIS" version="26" zv="IRIS for Windows (x86-64) 2022.1 (Build 209U)" ts="2022-11-30 16:56:31">
-<Project name="EnsExportItem_2022-11-30 16-56-21_055+1" LastModified="2022-11-30 16:56:31.1321822">
-  <ProjectDescription>Studio Project generated starting from Production Configuration Item 'INFORMATION.NewProduction : HL7TOFHIRV2' at 2022-11-30 15:56:21.055 UTC</ProjectDescription>
+<Export generator="IRIS" version="26" zv="IRIS for Windows (x86-64) 2022.1 (Build 209U)" ts="2022-11-30 17:23:46">
+<Project name="EnsExportItem_2022-11-30 17-23-41_693+1" LastModified="2022-11-30 17:23:46.8518306">
+  <ProjectDescription>Studio Project generated starting from Production Configuration Item 'INFORMATION.NewProduction : HL7TOFHIRV2' at 2022-11-30 16:23:41.693 UTC</ProjectDescription>
   <Items>
     <ProjectItem name="NCA.FhirBuilder" type="CLS"></ProjectItem>
     <ProjectItem name="NCA.HTTPOut" type="CLS"></ProjectItem>
     <ProjectItem name="Settings:HL7HTTP.PTD" type="PTD"></ProjectItem>
     <ProjectItem name="Settings:HL7TOFHIRV2.PTD" type="PTD"></ProjectItem>
     <ProjectItem name="Settings:NCAOps.PTD" type="PTD"></ProjectItem>
-    <ProjectItem name="EnsExportNotes.EnsExportItem_2022-11-30 16-56-21_055+1.PTD" type="PTD"></ProjectItem>
+    <ProjectItem name="EnsExportNotes.EnsExportItem_2022-11-30 17-23-41_693+1.PTD" type="PTD"></ProjectItem>
   </Items>
 </Project>
 
@@ -16,7 +16,7 @@
 <Class name="NCA.FhirBuilder">
 <ClassType>persistent</ClassType>
 <Super>Ens.BusinessProcess</Super>
-<TimeChanged>66443,60256.9731612</TimeChanged>
+<TimeChanged>66443,62097.8906116</TimeChanged>
 <TimeCreated>66437,33176.8049599</TimeCreated>
 
 <Method name="OnRequest">
@@ -28,6 +28,7 @@
 	Set LocalCode =  ""
 	set pArr=##class(%ArrayOfDataTypes).%New()
 	Set relationshipLKUP = "NCA.RelationShipCodes"
+	Set genderLKUP = "NCA.GenderCode"
 
 	// NHS Number / Local Code
 	Set Count=pRequest.GetValueAt("PID:3(*)")
@@ -57,22 +58,8 @@
 	do pArr.SetAt(pRequest.GetValueAt("PID:5.2"), "givenNameContent.given")
 
 	// Gender LookUp:
-	if pRequest.GetValueAt("PID:8") = "M"
-	{
-		do pArr.SetAt("male", "resource.gender")
-	}
-	elseif pRequest.GetValueAt("PID:8") = "F"
-	{
-		do pArr.SetAt("female", "resource.gender")
-	}
-	elseif pRequest.GetValueAt("PID:8") = "U"
-	{
-		do pArr.SetAt("unknown", "resource.gender")
-	}
-	elseif pRequest.GetValueAt("PID:8") = "I"
-	{
-		do pArr.SetAt("other", "resource.gender")
-	}
+	Set RelationShipCode = ##class(Ens.Util.FunctionSet).Lookup(genderLKUP, pRequest.GetValueAt("PID:8"), "$D", "$DE")
+	do pArr.SetAt(RelationShipCode, "resource.gender")
 
 	// Date of birth
 	do pArr.SetAt($ZDT($ZDATEH(pRequest.GetValueAt("PID:7.1"),5),3), "resource.birthDate")
@@ -1223,7 +1210,7 @@
 </Class>
 
 
-<Document name="EnsExportNotes.EnsExportItem_2022-11-30 16-56-21_055+1.PTD"><ProjectTextDocument name="EnsExportNotes.EnsExportItem_2022-11-30 16-56-21_055+1" description="Export Notes for export EnsExportItem_2022-11-30 16-56-21_055+1">
+<Document name="EnsExportNotes.EnsExportItem_2022-11-30 17-23-41_693+1.PTD"><ProjectTextDocument name="EnsExportNotes.EnsExportItem_2022-11-30 17-23-41_693+1" description="Export Notes for export EnsExportItem_2022-11-30 17-23-41_693+1">
 <![CDATA[<Deployment>
 <Creation>
 <Machine>DESKTOP-0B5KC8A</Machine>
@@ -1231,12 +1218,12 @@
 <Namespace>USER</Namespace>
 <SourceProduction>INFORMATION.NewProduction</SourceProduction>
 <Username>Imtech</Username>
-<UTC>2022-11-30 15:56:31.130</UTC>
+<UTC>2022-11-30 16:23:46.850</UTC>
 </Creation>
 <Notes>
 </Notes>
 <Contents>
-<ExportProject>EnsExportItem_2022-11-30 16-56-21_055+1</ExportProject>
+<ExportProject>EnsExportItem_2022-11-30 17-23-41_693+1</ExportProject>
 <Item num="1">NCA.FhirBuilder.CLS</Item>
 <Item num="2">NCA.HTTPOut.CLS</Item>
 <Item num="3">Settings:HL7HTTP.PTD</Item>

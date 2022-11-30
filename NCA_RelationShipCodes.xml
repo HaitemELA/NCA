@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="IRIS" version="26" zv="IRIS for Windows (x86-64) 2022.1 (Build 209U)" ts="2022-11-30 17:25:50">
+<Document name="NCA.RelationShipCodes.LUT">
+<lookupTable>
+<entry table="NCA.RelationShipCodes" key="AUNT">AUNT</entry>
+<entry table="NCA.RelationShipCodes" key="BROTHER">BRO</entry>
+<entry table="NCA.RelationShipCodes" key="DAUGHTER">DAUC</entry>
+<entry table="NCA.RelationShipCodes" key="FATHER">FTH</entry>
+<entry table="NCA.RelationShipCodes" key="FOSPAR(S)">FTHFOST</entry>
+<entry table="NCA.RelationShipCodes" key="FRIEND">FRND</entry>
+<entry table="NCA.RelationShipCodes" key="GCHILD">GRNDCHILD</entry>
+<entry table="NCA.RelationShipCodes" key="GMOTHER">GRMTH</entry>
+<entry table="NCA.RelationShipCodes" key="GUARDIAN">Guardian</entry>
+<entry table="NCA.RelationShipCodes" key="HUSBAND">HUSB</entry>
+<entry table="NCA.RelationShipCodes" key="MOTHER">MTH</entry>
+<entry table="NCA.RelationShipCodes" key="NEPHEW">NEPHEW</entry>
+<entry table="NCA.RelationShipCodes" key="NIECE">NIECE</entry>
+<entry table="NCA.RelationShipCodes" key="OTHER NR">U</entry>
+<entry table="NCA.RelationShipCodes" key="OTHER REL">U</entry>
+<entry table="NCA.RelationShipCodes" key="PARENT(S)">PRN</entry>
+<entry table="NCA.RelationShipCodes" key="PARTNER">DOMPART</entry>
+<entry table="NCA.RelationShipCodes" key="SISTER">SIS</entry>
+<entry table="NCA.RelationShipCodes" key="SON">SON</entry>
+<entry table="NCA.RelationShipCodes" key="SPOUSE">SPS</entry>
+<entry table="NCA.RelationShipCodes" key="UNCLE">UNCLE</entry>
+<entry table="NCA.RelationShipCodes" key="WIFE">WIFE</entry>
+</lookupTable>
+</Document></Export>

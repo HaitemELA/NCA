@@ -8,6 +8,7 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pResponse As Ens.Respons
 	Set LocalCode =  ""
 	set pArr=##class(%ArrayOfDataTypes).%New()
 	Set relationshipLKUP = "NCA.RelationShipCodes"
+	Set genderLKUP = "NCA.GenderCode"
 
 	// NHS Number / Local Code
 	Set Count=pRequest.GetValueAt("PID:3(*)")
@@ -37,22 +38,8 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pResponse As Ens.Respons
 	do pArr.SetAt(pRequest.GetValueAt("PID:5.2"), "givenNameContent.given")
 
 	// Gender LookUp:
-	if pRequest.GetValueAt("PID:8") = "M"
-	{
-		do pArr.SetAt("male", "resource.gender")
-	}
-	elseif pRequest.GetValueAt("PID:8") = "F"
-	{
-		do pArr.SetAt("female", "resource.gender")
-	}
-	elseif pRequest.GetValueAt("PID:8") = "U"
-	{
-		do pArr.SetAt("unknown", "resource.gender")
-	}
-	elseif pRequest.GetValueAt("PID:8") = "I"
-	{
-		do pArr.SetAt("other", "resource.gender")
-	}
+	Set RelationShipCode = ##class(Ens.Util.FunctionSet).Lookup(genderLKUP, pRequest.GetValueAt("PID:8"), "$D", "$DE")
+	do pArr.SetAt(RelationShipCode, "resource.gender")
 
 	// Date of birth
 	do pArr.SetAt($ZDT($ZDATEH(pRequest.GetValueAt("PID:7.1"),5),3), "resource.birthDate")

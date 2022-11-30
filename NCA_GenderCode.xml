@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="IRIS" version="26" zv="IRIS for Windows (x86-64) 2022.1 (Build 209U)" ts="2022-11-30 17:26:37">
+<Document name="NCA.GenderCode.LUT">
+<lookupTable>
+<entry table="NCA.GenderCode" key="F">female</entry>
+<entry table="NCA.GenderCode" key="I">other</entry>
+<entry table="NCA.GenderCode" key="M">male</entry>
+<entry table="NCA.GenderCode" key="U">unknown</entry>
+</lookupTable>
+</Document></Export>
