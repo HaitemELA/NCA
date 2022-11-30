@@ -1,7 +1,7 @@
 Class NCA.FhirBuilder Extends Ens.BusinessProcess [ ClassType = persistent ]
 {
 
-Method OnRequest(pRequest As EnsLib.HL7.Message, Output pArr As Ens.Response) As %Status
+Method OnRequest(pRequest As EnsLib.HL7.Message, Output pResponse As Ens.Response) As %Status
 {
 	set tsc = $$$OK
 	Set nhsNumber = ""
@@ -116,9 +116,9 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pArr As Ens.Response) As
 	do pArr.SetAt(pRequest.GetValueAt("RF1:10"), "SRcategoryText")
 
     // Location
-	do pArr.SetAt(pRequest.GetValueAt("LOC:2"), "LocationCode")
-	do pArr.SetAt(pRequest.GetValueAt("LOC:3"), "LocationType")
-	do pArr.SetAt(pRequest.GetValueAt("LOC:4"), "LocationName")
+	do pArr.SetAt(pRequest.GetValueAt("PV1:3.1"), "LocationCode")
+	do pArr.SetAt(pRequest.GetValueAt("PV1:3.9"), "LocationType")
+	do pArr.SetAt(pRequest.GetValueAt("PV1:3.3"), "LocationName")
 
     // Episode Of Care
 	do pArr.SetAt(pRequest.GetValueAt("EVN:2"), "EpisodeOfCareValue")
@@ -128,17 +128,33 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pArr As Ens.Response) As
 	do pArr.SetAt(pRequest.GetValueAt("EVN:19"), "EncounterIdentifier")
 
     // Build resrouces
-	set tsc = ..PatientResource(pArr) // Patient
-	set tsc = ..GPPractitionerRoleResource(pArr) //GPPractitionerRole
-	set tsc = ..PractitionerRoleResource(pArr) //PractitionerRole
-	set tsc = ..PractitionerResource(pArr) //Practitioner
-	set tsc = ..OrganizationResource(pArr) // Organization
-	set tsc = ..LocationResource(pArr) // Location
-	set tsc = ..EpisodeOfCareResource(pArr) //EpisodeOfCare
-	set tsc = ..EncounterResource(pArr) // EncounterOutPatient
-	set tsc = ..ServiceRequestResource(pArr) // ServiceRequest
+	set tsc = ..PatientResource(pArr, .pPatientResource) // Patient
+	set tsc = ..GPPractitionerRoleResource(pArr, .pGPPractitionerRoleResource) //GPPractitionerRole
+	set tsc = ..PractitionerRoleResource(pArr, .pPractitionerRoleResource) //PractitionerRole
+	set tsc = ..PractitionerResource(pArr, .pPractitionerResource) //Practitioner
+	set tsc = ..OrganizationResource(pArr, .pOrganizationResource) // Organization
+	set tsc = ..LocationResource(pArr, .pLocationResource) // Location
+	set tsc = ..EpisodeOfCareResource(pArr, .pEpisodeOfCareResource) //EpisodeOfCare
+	set tsc = ..EncounterResource(pArr, .pEncounterResource) // EncounterOutPatient
+	set tsc = ..ServiceRequestResource(pArr, .pServiceRequestResource) // ServiceRequest
 
-	set tsc = ..BundleBuilder(pArr) // Bundle
+	// Bundle building: pending the logic
+	set BundleArray = ##class(%DynamicArray).%New()
+	do BundleArray.%Push(pPatientResource)
+	do BundleArray.%Push(pPractitionerRoleResource)
+	do BundleArray.%Push(pPractitionerResource)
+	do BundleArray.%Push(pOrganizationResource)
+
+	set tsc = ..BundleBuilder(pArr, BundleArray, .BundleResource) // Bundle
+
+	// Add the Subscription into a streamContainer	
+	set stream=##class(%Stream.GlobalCharacter).%New()
+	set string = BundleResource.%ToJSON()
+	set tsc = stream.WriteLine(string)
+	set strmCont=##class(Ens.StreamContainer).%New()
+	set strmCont.Stream=stream
+
+	Set tsc=..SendRequestSync("NCAOps",strmCont)
 
 	;$$$TRACE("pArr.Count(): "_pArr.Count())
 
@@ -147,49 +163,43 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pArr As Ens.Response) As
 
 // BundleBuilder
 
-Method BundleBuilder(pArr As Ens.Request) As %Status
+Method BundleBuilder(pArr As Ens.Request, pBundleArray As %DynamicArray, Output bundle As %DynamicObject) As %Status
 {
-    ;CreateBundle(pIdentifier As %DynamicObject, pType As %String, pTotal As %String, ByRef pUrls, pSchema As HS.FHIRServer.Schema)
 	set tsc = $$$OK
-
-    // Create a new resource
-	set bundle = ##class(%DynamicObject).%New()
-    set bundle.resourceType = "Bundle"
-    set bundle.type = "collection"
-
-    set entryArray = ##class(%DynamicArray).%New()
-
-    set tsc = ..PatientResource(pArr, .pPatientResource)
 
     set nhsNumber = pArr.GetAt("NhsNumberContent.value")
     set LocalCode = pArr.GetAt("LocalCode")
 
     if nhsNumber '= ""
     {
-        set tsc = ..ConsentResource(nhsNumber, .pConsentResource)
-        set tsc = ..FlagResource(nhsNumber, .pFlagResource)
+        set patientID = nhsNumber
     }
     elseif LocalCode '= ""
     {
-        set tsc = ..ConsentResource(LocalCode, .pConsentResource)
-        set tsc = ..FlagResource(LocalCode, .pFlagResource)
+        set patientID = LocalCode
+
     }
 
-    Set resourceElement1 = ##class(%DynamicObject).%New()
-    set resourceElement1.resource = pPatientResource
-    do entryArray.%Push(resourceElement1)
+	set entryArray = ##class(%DynamicArray).%New()
 
-    Set resourceElement2 = ##class(%DynamicObject).%New()
-    set resourceElement2.resource = pConsentResource
-    do entryArray.%Push(resourceElement2)
+    // Create a new resource
+	set bundle = ##class(%DynamicObject).%New()
+    set bundle.resourceType = "Bundle"
+    set bundle.type = "collection"
 
-    Set resourceElement3 = ##class(%DynamicObject).%New()
-    set resourceElement3.resource = pFlagResource
-    do entryArray.%Push(resourceElement3)
+
+	set iterator=pBundleArray.%GetIterator()
+	while iterator.%GetNext(.key,.val) {
+		Set resourceElement = ##class(%DynamicObject).%New()
+    	set resourceElement.resource = val
+    	do entryArray.%Push(resourceElement)
+	}
 
     set bundle.entry = entryArray
  
     $$$TRACE("Bundle= "_bundle.%ToJSON())
+
+	;return bundle
 
 	quit tsc
 }
@@ -532,7 +542,7 @@ Method FlagResource(pIdentifier As %String, Output pFlagResource As %DynamicObje
 
 // GPPractitionerRole resource
 
-Method GPPractitionerRoleResource(pArr As Ens.Request) As %Status
+Method GPPractitionerRoleResource(pArr As Ens.Request, Output pGPPractitionerRoleResource As %DynamicObject) As %Status
 {
 	set tsc = $$$OK
 
@@ -561,12 +571,14 @@ Method GPPractitionerRoleResource(pArr As Ens.Request) As %Status
 
 	$$$TRACE("GPPractitionerRoleResource= "_resource.%ToJSON())
 
+	set pGPPractitionerRoleResource = resource
+
 	Quit tsc
 }
 
 // PractitionerRole
 
-Method PractitionerRoleResource(pArr As Ens.Request) As %Status
+Method PractitionerRoleResource(pArr As Ens.Request, Output pPractitionerRoleResource As %DynamicObject) As %Status
 {
 	set tsc = $$$OK
 
@@ -598,12 +610,14 @@ Method PractitionerRoleResource(pArr As Ens.Request) As %Status
 
 	$$$TRACE("PractitionerRoleResource= "_resource.%ToJSON())
 
+	set pPractitionerRoleResource = resource
+
 	Quit tsc
 }
 
 // Practitioner Resource
 
-Method PractitionerResource(pArr As Ens.Request) As %Status
+Method PractitionerResource(pArr As Ens.Request, Output pPractitionerResource As %DynamicObject) As %Status
 {
 	set tsc = $$$OK
 
@@ -672,12 +686,14 @@ Method PractitionerResource(pArr As Ens.Request) As %Status
 	set resource.name = GPnameArray
 	$$$TRACE("PractitionerResource= "_resource.%ToJSON())
 
+	set pPractitionerResource = resource
+
 	Quit tsc
 }
 
 // Organization resource
 
-Method OrganizationResource(pArr As Ens.Request) As %Status
+Method OrganizationResource(pArr As Ens.Request, Output pOrganizationResource As %DynamicObject) As %Status
 {
 	set tsc = $$$OK
 	set OdsCode = pArr.GetAt("odsOrganisationCode")
@@ -731,12 +747,14 @@ Method OrganizationResource(pArr As Ens.Request) As %Status
 
 	$$$TRACE("Organization= "_resource.%ToJSON())
 
+	set pOrganizationResource = resource
+
 	Quit tsc
 }
 
 // Location resource
 
-Method LocationResource(pArr As Ens.Request) As %Status
+Method LocationResource(pArr As Ens.Request, Output pLocationResource As %DynamicObject) As %Status
 {
 	set tsc = $$$OK
 
@@ -771,12 +789,14 @@ Method LocationResource(pArr As Ens.Request) As %Status
 
 	$$$TRACE("Location= "_resource.%ToJSON())
 
+	set pLocationResource = resource
+
 	Quit tsc
 }
 
 // EpisodeOfCare resource
 
-Method EpisodeOfCareResource(pArr As Ens.Request) As %Status
+Method EpisodeOfCareResource(pArr As Ens.Request, Output pEpisodeOfCareResource As %DynamicObject) As %Status
 {
 	set tsc = $$$OK
 	set resource = ##class(%DynamicObject).%New()
@@ -813,12 +833,14 @@ Method EpisodeOfCareResource(pArr As Ens.Request) As %Status
 
 	$$$TRACE("EpisodeOfCareResource= "_resource.%ToJSON())
 
+	set pEpisodeOfCareResource =  resource
+
 	Quit tsc
 }
 
 // EpisodeOfCare resource
 
-Method EncounterResource(pArr) As %Status
+Method EncounterResource(pArr, Output pEncounterResource As %DynamicObject) As %Status
 {
 	set tsc = $$$OK
 
@@ -903,15 +925,21 @@ Method EncounterResource(pArr) As %Status
 
 	// Location
 	set Location = ##class(%DynamicObject).%New()
+	set LocationObject = ##class(%DynamicObject).%New()
+	set LocationArray = ##class(%DynamicArray).%New()
 	set Location.reference = "Location/"_pArr.GetAt("LocationCode")
-	set resource.location = Location
+	set LocationObject.location = Location
+	do LocationArray.%Push(LocationObject)
+	set resource.location = LocationArray
 
 	$$$TRACE("EncounterResource= "_resource.%ToJSON())
+
+	set pEncounterResource = resource
 
 	quit tsc
 }
 
-Method ServiceRequestResource(pArr As Ens.Request) As %Status
+Method ServiceRequestResource(pArr As Ens.Request, Output pServiceRequestResource As %DynamicObject) As %Status
 {
 	set tsc = $$$OK
 
@@ -962,6 +990,8 @@ Method ServiceRequestResource(pArr As Ens.Request) As %Status
 	set resource.locationReference = LocationReference
 
 	$$$TRACE("ServiceRequestResource= "_resource.%ToJSON())
+
+	set pServiceRequestResource = resource
 
 	quit tsc
 }
