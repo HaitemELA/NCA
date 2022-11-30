@@ -72,7 +72,11 @@
       "start":"2022-11-01",
       "end":"2022-11-10"
    },
-   "location":{
-      "reference":"Location/"
-   }
+   "location":[
+      {
+         "location":{
+            "reference":"Location/NC5"
+         }
+      }
+   ]
 }
