@@ -122,6 +122,10 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pArr As Ens.Response) As
 
     // Episode Of Care
 	do pArr.SetAt(pRequest.GetValueAt("EVN:2"), "EpisodeOfCareValue")
+	
+	// Encounter
+	// Encounter.identifier
+	do pArr.SetAt(pRequest.GetValueAt("EVN:19"), "EncounterIdentifier")
 
     // Build resrouces
 	set tsc = ..PatientResource(pArr) // Patient
@@ -131,7 +135,7 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pArr As Ens.Response) As
 	set tsc = ..OrganizationResource(pArr) // Organization
 	set tsc = ..LocationResource(pArr) // Location
 	set tsc = ..EpisodeOfCareResource(pArr) //EpisodeOfCare
-	set tsc = ..EncounterResource() // EncounterOutPatient
+	set tsc = ..EncounterResource(pArr) // EncounterOutPatient
 	set tsc = ..ServiceRequestResource(pArr) // ServiceRequest
 
 	set tsc = ..BundleBuilder(pArr) // Bundle
@@ -814,7 +818,7 @@ Method EpisodeOfCareResource(pArr As Ens.Request) As %Status
 
 // EpisodeOfCare resource
 
-Method EncounterResource() As %Status
+Method EncounterResource(pArr) As %Status
 {
 	set tsc = $$$OK
 
@@ -826,8 +830,8 @@ Method EncounterResource() As %Status
 	set identifierArray = ##class(%DynamicArray).%New()
 	set identifierCoding = ##class(%DynamicObject).%New()
 	set identifierCoding.system = "http://example.com"
-	set identifierCoding.value = "########"
-	set identifierCoding.assigner = ..AssignerBuilder("Organization/RW6")
+	set identifierCoding.value = pArr.GetAt("EncounterIdentifier")
+	set identifierCoding.assigner = ..AssignerBuilder("Organization/RW6orRM3")
 
 	do identifierArray.%Push(identifierCoding)
 	set resource.identifier = identifierArray
@@ -861,12 +865,19 @@ Method EncounterResource() As %Status
 
 	// Subject
 	set Subject = ##class(%DynamicObject).%New()
-	set Subject.reference = "patient/0123456"
+    if pArr.GetAt("NhsNumberContent.value") '= ""
+    {
+        set Subject.reference = "Patient/"_pArr.GetAt("NhsNumberContent.value")
+    }
+	elseif pArr.GetAt("LocalCode") '= ""
+    {
+        set Subject.reference = "Patient/"_pArr.GetAt("LocalCode")
+    }
 	set resource.subject = Subject
 
 	// EpisodeOfCare
 	set EpisodeOfCare = ##class(%DynamicObject).%New()
-	set EpisodeOfCare.reference = "episodeOfCare/0123456"
+	set EpisodeOfCare.reference = "episodeOfCare/"_pArr.GetAt("EpisodeOfCareValue")
 	set resource.episodeOfCare = EpisodeOfCare
 
 	// BasedOn
@@ -892,7 +903,7 @@ Method EncounterResource() As %Status
 
 	// Location
 	set Location = ##class(%DynamicObject).%New()
-	set Location.reference = "Location/0123456"
+	set Location.reference = "Location/"_pArr.GetAt("LocationCode")
 	set resource.location = Location
 
 	$$$TRACE("EncounterResource= "_resource.%ToJSON())
@@ -903,8 +914,6 @@ Method EncounterResource() As %Status
 Method ServiceRequestResource(pArr As Ens.Request) As %Status
 {
 	set tsc = $$$OK
-	
-	$$$TRACE("ServiceRequestResource= start")
 
 	set resource = ##class(%DynamicObject).%New()
 	set resource.resourceType = "ServiceRequest"
@@ -932,7 +941,14 @@ Method ServiceRequestResource(pArr As Ens.Request) As %Status
 
 	// Subject
 	set Subject = ##class(%DynamicObject).%New()
-	set Subject.reference = "Patient/0123456"
+    if pArr.GetAt("NhsNumberContent.value") '= ""
+    {
+        set Subject.reference = "Patient/"_pArr.GetAt("NhsNumberContent.value")
+    }
+	elseif pArr.GetAt("LocalCode") '= ""
+    {
+        set Subject.reference = "Patient/"_pArr.GetAt("LocalCode")
+    }
 	set resource.subject = Subject
 
 	// Encounter
@@ -942,7 +958,7 @@ Method ServiceRequestResource(pArr As Ens.Request) As %Status
 
 	// LocationReference
 	set LocationReference = ##class(%DynamicObject).%New()
-	set LocationReference.reference = "Location/0123456"
+	set LocationReference.reference = "Location/"_pArr.GetAt("LocationCode")
 	set resource.locationReference = LocationReference
 
 	$$$TRACE("ServiceRequestResource= "_resource.%ToJSON())
