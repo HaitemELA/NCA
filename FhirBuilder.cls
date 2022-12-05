@@ -38,12 +38,16 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pResponse As Ens.Respons
 	do pArr.SetAt(pRequest.GetValueAt("PID:5.2"), "givenNameContent.given")
 
 	// Gender LookUp:
-	Set RelationShipCode = ##class(Ens.Util.FunctionSet).Lookup(genderLKUP, pRequest.GetValueAt("PID:8"), "$D", "$DE")
-	do pArr.SetAt(RelationShipCode, "resource.gender")
+	Set GenderCode = ##class(Ens.Util.FunctionSet).Lookup(genderLKUP, pRequest.GetValueAt("PID:8"), "$D", "$DE")
+	do pArr.SetAt(GenderCode, "resource.gender")
 
 	// Date of birth
 	do pArr.SetAt($ZDT($ZDATEH(pRequest.GetValueAt("PID:7.1"),5),3), "resource.birthDate")
 
+	do pArr.SetAt(pRequest.GetValueAt("PID:22"), "ethnicCategory.value") // Ethnicity
+	do pArr.SetAt(pRequest.GetValueAt("PID:17"), "religion.value") // Religion
+	do pArr.SetAt(pRequest.GetValueAt("PID:28"), "Nationality.value") // Nationality
+	
     // BirthPlace
     do pArr.SetAt(pRequest.GetValueAt("PID:23"), "birthPlaceValueAddress.text")
 
@@ -107,11 +111,13 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pResponse As Ens.Respons
 	do pArr.SetAt(pRequest.GetValueAt("PV1:3.9"), "LocationType")
 	do pArr.SetAt(pRequest.GetValueAt("PV1:3.3"), "LocationName")
 
+	// PraciontionerRole
+	do pArr.SetAt(pRequest.GetValueAt("PV1:10"), "PractitionerRole.specialty") // Specialty
+
     // Episode Of Care
 	do pArr.SetAt(pRequest.GetValueAt("EVN:2"), "EpisodeOfCareValue")
 	
 	// Encounter
-	// Encounter.identifier
 	do pArr.SetAt(pRequest.GetValueAt("EVN:19"), "EncounterIdentifier")
 
     // Build resrouces
@@ -133,6 +139,10 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pResponse As Ens.Respons
 	do BundleArray.%Push(pOrganizationResource)
 
 	set tsc = ..BundleBuilder(pArr, BundleArray, .BundleResource) // Bundle
+	;set formatter = ##class(%JSON.Formatter).%New()
+	;set tsc = formatter.Format(BundleResource.%ToJSON(), .string)
+	;$$$TRACE("string:*****"_string)
+	;$$$TRACE("BundleResource:*****"_BundleResource.%ToJSON())
 
 	// Add the Subscription into a streamContainer	
 	set stream=##class(%Stream.GlobalCharacter).%New()
@@ -324,6 +334,7 @@ Method PatientResource(pArr As Ens.Request, Output pPatientResource As %DynamicO
 		set relationshipCodingCode = ##class(%DynamicObject).%New()
 
 		set relationshipCodingCode.code = pArr.GetAt("relationshipCodingCode.code"_j)
+		set relationshipCodingCode.system = "http://terminology.hl7.org/CodeSystem/v3-RoleCode" // To double check
 		do CodeArray.%Push(relationshipCodingCode)
 		set relationshipCoding.coding = CodeArray
 		do relationshipArray.%Push(relationshipCoding)
@@ -342,6 +353,7 @@ Method PatientResource(pArr As Ens.Request, Output pPatientResource As %DynamicO
 		set ContactphoneContent.system = "phone"
 		set ContactphoneContent.value = pArr.GetAt("ContactphoneContent.value"_j)
 		if ($EXTRACT(ContactphoneContent.value, 1, 2) = "07") || ($EXTRACT(ContactphoneContent.value, 1, 4) = "+447")
+		|| ($EXTRACT(ContactphoneContent.value, 1, 5) = "+44 7") || ($EXTRACT(ContactphoneContent.value, 1, 3) = "MOB")
 		{
 			set ContactphoneContent.use = "mobile"
 		}
@@ -402,21 +414,21 @@ Method PatientResource(pArr As Ens.Request, Output pPatientResource As %DynamicO
 	set ethnicCategory = ##class(%DynamicObject).%New()
 	set ethnicCategory.url = "https://fhir.hl7.org.uk/StructureDefinition/Extension-UKCore-EthnicCategory" //!!! this link will import ethnic categories from wales and
 	// and scotland as well!! Need to use england codes only?  "https://fhir.hl7.org.uk/CodeSystem/UKCore-EthnicCategoryEngland"
-	set ethnicCategory.value = "Ethnicity"
+	set ethnicCategory.value = pArr.GetAt("ethnicCategory.value")
 
 	do Extension.%Push(ethnicCategory)
 
 	// Extension - patientReligion
 	set patientReligion = ##class(%DynamicObject).%New()
 	set patientReligion.url = "http://hl7.org/fhir/StructureDefinition/patient-religion"
-	set patientReligion.value = "Religion Code"
+	set patientReligion.value = pArr.GetAt("religion.value")
 
 	do Extension.%Push(patientReligion)
 
 	//Extension - Nationality
 	set Nationality = ##class(%DynamicObject).%New()
 	set Nationality.url = "https://www.northerncarealliance.nhs.uk/fhir-profiles/patientNationality"
-	set Nationality.value = "AF"
+	set Nationality.value = pArr.GetAt("Nationality.value")
 
 	do Extension.%Push(Nationality)
 
@@ -576,7 +588,7 @@ Method PractitionerRoleResource(pArr As Ens.Request, Output pPractitionerRoleRes
 	set specialtyArray = ##class(%DynamicArray).%New()
 	set specialtyCoding = ##class(%DynamicObject).%New()
 
-	set tsc = ..CodeableConcept("LocalSpecialty-RW6_OR_LocalSpecialty-RM3", "######", "######", .class, .specialtyCoding1)
+	set tsc = ..CodeableConcept("LocalSpecialty-RW6_OR_LocalSpecialty-RM3", pArr.GetAt("PractitionerRole.specialty"), "######", .class, .specialtyCoding1)
 	do specialtyArray.%Push(specialtyCoding1)
 
 	set tsc = ..CodeableConcept("https://www.datadictionary.nhs.uk/attributes/main_specialty_code.html",
