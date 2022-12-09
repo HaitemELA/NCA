@@ -222,7 +222,7 @@ Method BundleBuilder(pArr As Ens.Request, pBundleArray As %DynamicArray, Output 
 
 		// Request resource
 		set requestContent = ##class(%DynamicObject).%New()
-		set requestContent.method = "POST"
+		set requestContent.method = "PUT"
 		set requestContent.url = "Patient/"_patientID
 		set resourceElement.request = requestContent
     	do entryArray.%Push(resourceElement)
