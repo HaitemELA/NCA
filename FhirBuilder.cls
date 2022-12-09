@@ -10,7 +10,7 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pResponse As Ens.Respons
 	Set relationshipLKUP = "NCA.RelationShipCodes"
 	Set genderLKUP = "NCA.GenderCode"
 	Set ethnicityLKUP = "NCA.Ethnicity"
-
+	// Test
 	// NHS Number / Local Code
 	Set Count=pRequest.GetValueAt("PID:3(*)")
 	For i=1:1:Count 
