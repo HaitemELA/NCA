@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="IRIS" version="26" zv="IRIS for Windows (x86-64) 2022.1 (Build 209U)" ts="2022-12-08 14:21:37">
+<Document name="NCA.Ethnicity.LUT">
+<lookupTable>
+<entry table="NCA.Ethnicity" key="AA">A</entry>
+<entry table="NCA.Ethnicity" key="BB">B</entry>
+<entry table="NCA.Ethnicity" key="CC">C</entry>
+<entry table="NCA.Ethnicity" key="DD">D</entry>
+<entry table="NCA.Ethnicity" key="EE">E</entry>
+<entry table="NCA.Ethnicity" key="FF">F</entry>
+<entry table="NCA.Ethnicity" key="GG">G</entry>
+<entry table="NCA.Ethnicity" key="HH">H</entry>
+<entry table="NCA.Ethnicity" key="JJ">J</entry>
+<entry table="NCA.Ethnicity" key="KK">K</entry>
+<entry table="NCA.Ethnicity" key="LL">L</entry>
+<entry table="NCA.Ethnicity" key="MM">M</entry>
+<entry table="NCA.Ethnicity" key="NN">N</entry>
+<entry table="NCA.Ethnicity" key="PP">P</entry>
+<entry table="NCA.Ethnicity" key="RR">R</entry>
+<entry table="NCA.Ethnicity" key="SS">S</entry>
+<entry table="NCA.Ethnicity" key="U">99</entry>
+<entry table="NCA.Ethnicity" key="ZZ">Z</entry>
+</lookupTable>
+</Document></Export>

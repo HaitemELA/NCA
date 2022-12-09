@@ -9,6 +9,7 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pResponse As Ens.Respons
 	set pArr=##class(%ArrayOfDataTypes).%New()
 	Set relationshipLKUP = "NCA.RelationShipCodes"
 	Set genderLKUP = "NCA.GenderCode"
+	Set ethnicityLKUP = "NCA.Ethnicity"
 
 	// NHS Number / Local Code
 	Set Count=pRequest.GetValueAt("PID:3(*)")
@@ -44,7 +45,11 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pResponse As Ens.Respons
 	// Date of birth
 	do pArr.SetAt($ZDT($ZDATEH(pRequest.GetValueAt("PID:7.1"),5),3), "resource.birthDate")
 
-	do pArr.SetAt(pRequest.GetValueAt("PID:22"), "ethnicCategory.value") // Ethnicity
+	 // Ethnicity
+	Set EthinicityCode = ##class(Ens.Util.FunctionSet).Lookup(ethnicityLKUP, pRequest.GetValueAt("PID:22.1"), "$D", "$DE")
+	do pArr.SetAt(EthinicityCode, "ethnicCategory.value")
+	$$$TRACE("EthinicityCode: "_EthinicityCode_"//"_pRequest.GetValueAt("PID:22.1"))
+
 	do pArr.SetAt(pRequest.GetValueAt("PID:17"), "religion.value") // Religion
 	do pArr.SetAt(pRequest.GetValueAt("PID:28"), "Nationality.value") // Nationality
 	
@@ -130,26 +135,38 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pResponse As Ens.Respons
 	set tsc = ..EpisodeOfCareResource(pArr, .pEpisodeOfCareResource) //EpisodeOfCare
 	set tsc = ..EncounterResource(pArr, .pEncounterResource) // EncounterOutPatient
 	set tsc = ..ServiceRequestResource(pArr, .pServiceRequestResource) // ServiceRequest
+	set tsc = ..ConsentResource(pArr, .pConsentResource) // ConsentRequest
+	set tsc = ..FlagResource(pArr, .pFlagResource) // ConsentRequest
 
 	// Bundle building: pending the logic
 	set BundleArray = ##class(%DynamicArray).%New()
 	do BundleArray.%Push(pPatientResource)
-	do BundleArray.%Push(pPractitionerRoleResource)
-	do BundleArray.%Push(pPractitionerResource)
 	do BundleArray.%Push(pOrganizationResource)
+	do BundleArray.%Push(pGPPractitionerRoleResource)
+	do BundleArray.%Push(pPractitionerResource)
+	do BundleArray.%Push(pPractitionerRoleResource)
+	do BundleArray.%Push(pConsentResource)
+	do BundleArray.%Push(pFlagResource)
 
 	set tsc = ..BundleBuilder(pArr, BundleArray, .BundleResource) // Bundle
-	;set formatter = ##class(%JSON.Formatter).%New()
-	;set tsc = formatter.Format(BundleResource.%ToJSON(), .string)
-	;$$$TRACE("string:*****"_string)
-	;$$$TRACE("BundleResource:*****"_BundleResource.%ToJSON())
+	set strmCont=##class(Ens.StreamContainer).%New()
+	set strm = ##class(%Stream.GblChrCompress).%New()
+	set formatter = ##class(%JSON.Formatter).%New()
+	set Inputstring = BundleResource.%ToJSON()
+	$$$TRACE("Inputstring:*****"_Inputstring)
+	do formatter.FormatToStream(Inputstring, .strm)
+	
+	$$$TRACE("BundleResource:*****"_BundleResource.%ToJSON())
 
 	// Add the Subscription into a streamContainer	
+	/*
 	set stream=##class(%Stream.GlobalCharacter).%New()
 	set string = BundleResource.%ToJSON()
 	set tsc = stream.WriteLine(string)
-	set strmCont=##class(Ens.StreamContainer).%New()
-	set strmCont.Stream=stream
+	*/
+	
+	set strmCont.Stream=strm
+	$$$TRACE("strmCont:*****"_strmCont)
 
 	Set tsc=..SendRequestSync("NCAOps",strmCont)
 
@@ -182,16 +199,45 @@ Method BundleBuilder(pArr As Ens.Request, pBundleArray As %DynamicArray, Output 
     // Create a new resource
 	set bundle = ##class(%DynamicObject).%New()
     set bundle.resourceType = "Bundle"
-    set bundle.type = "collection"
-
+    set bundle.type = "transaction"
 
 	set iterator=pBundleArray.%GetIterator()
 	while iterator.%GetNext(.key,.val) {
 		Set resourceElement = ##class(%DynamicObject).%New()
+    	set resourceElement.fullUrl = "https://www.northerncarealliance.nhs.uk/fhir-profiles/"_val.resourceType_"/id"
+
+		// ID
+		if val.resourceType = "Patient" {
+			set resourceElement.id = patientID
+		}
+		elseif val.resourceType = "Practitioner" {
+			set resourceElement.id = pArr.GetAt("NationalCode")
+		}
+		else {
+			set resourceElement.id = $System.Util.CreateGUID()
+		}
+
+		// Resource entry
     	set resourceElement.resource = val
+
+		// Request resource
+		set requestContent = ##class(%DynamicObject).%New()
+		set requestContent.method = "POST"
+		set requestContent.url = "Patient/"_patientID
+		set resourceElement.request = requestContent
     	do entryArray.%Push(resourceElement)
 	}
 
+	/* Request resource
+	set request = ##class(%DynamicObject).%New()
+	set requestContent = ##class(%DynamicObject).%New()
+	set requestContent.method = "POST"
+	set requestContent.url = "Patient/"_patientID
+	set request.request = requestContent
+    do entryArray.%Push(request)
+	*/
+
+	// Bundle entry
     set bundle.entry = entryArray
  
     $$$TRACE("Bundle= "_bundle.%ToJSON())
@@ -450,7 +496,7 @@ Method PatientResource(pArr As Ens.Request, Output pPatientResource As %DynamicO
 	//GP
 	set gpArray = ##class(%DynamicArray).%New()
 	set gpContent  = ##class(%DynamicObject).%New()
-	set gpContent.reference = "Practitioner/"_pArr.GetAt("NationalCode")
+	set gpContent.reference = "PractitionerRole/394814009" ;_pArr.GetAt("NationalCode")
 	do gpArray.%Push(gpContent)
 
 	set resource.generalPractitioner = gpArray
@@ -461,6 +507,7 @@ Method PatientResource(pArr As Ens.Request, Output pPatientResource As %DynamicO
 	$$$TRACE("Patientresource= "_resource.%ToJSON())
 
 	// Consent resource
+	/*
 	if nhsNumber '= ""
 	{
 		set tsc = ..ConsentResource(nhsNumber)
@@ -471,7 +518,11 @@ Method PatientResource(pArr As Ens.Request, Output pPatientResource As %DynamicO
 	{
 		set tsc = ..ConsentResource(LocalCode)
 		set tsc = ..FlagResource(LocalCode)
-	} 
+	}
+	*/
+
+	set tsc = ..ConsentResource(pArr) // Consent resource
+	set tsc = ..FlagResource(pArr) // Flag resource
 
     set pPatientResource = resource
 	
@@ -480,9 +531,21 @@ Method PatientResource(pArr As Ens.Request, Output pPatientResource As %DynamicO
 
 // Consent resource
 
-Method ConsentResource(pIdentifier As %String, Output pConsentResource As %DynamicObject) As %Status
+Method ConsentResource(pArr As Ens.Request, Output pConsentResource As %DynamicObject) As %Status
 {
 	set tsc=$$$OK
+    set nhsNumber = pArr.GetAt("NhsNumberContent.value")
+    set LocalCode = pArr.GetAt("LocalCode")
+
+    if nhsNumber '= ""
+    {
+        set patientID = nhsNumber
+    }
+    elseif LocalCode '= ""
+    {
+        set patientID = LocalCode
+    }
+
 	set resource = ##class(%DynamicObject).%New()
 	set resource.resourceType = "Consent"
 	set resource.status = "active"
@@ -492,7 +555,7 @@ Method ConsentResource(pIdentifier As %String, Output pConsentResource As %Dynam
 
     // Patient
 	set PatientRef = ##class(%DynamicObject).%New()
-	set PatientRef.reference = "Patient/"_pIdentifier
+	set PatientRef.reference = "Patient/"_patientID
 	set resource.patient = PatientRef
 
     // Policy
@@ -513,9 +576,21 @@ Method ConsentResource(pIdentifier As %String, Output pConsentResource As %Dynam
 	Quit tsc
 }
 
-Method FlagResource(pIdentifier As %String, Output pFlagResource As %DynamicObject) As %Status
+Method FlagResource(pArr As Ens.Request, Output pFlagResource As %DynamicObject) As %Status
 {
 	set tsc=$$$OK
+    set nhsNumber = pArr.GetAt("NhsNumberContent.value")
+    set LocalCode = pArr.GetAt("LocalCode")
+
+    if nhsNumber '= ""
+    {
+        set patientID = nhsNumber
+    }
+    elseif LocalCode '= ""
+    {
+        set patientID = LocalCode
+    }
+
 	set resource = ##class(%DynamicObject).%New()
 	set resource.resourceType = "Flag"
 	set resource.status = "active"
@@ -525,7 +600,7 @@ Method FlagResource(pIdentifier As %String, Output pFlagResource As %DynamicObje
 
     // Subject
 	set Subject = ##class(%DynamicObject).%New()
-	set Subject.reference = "patient/"_pIdentifier
+	set Subject.reference = "patient/"_patientID
 	set resource.subject = Subject
 
     // Category
@@ -636,6 +711,7 @@ Method PractitionerResource(pArr As Ens.Request, Output pPractitionerResource As
 
 	// PAS Local
 	set identifierArray = ##class(%DynamicArray).%New()
+	/*
 	if PASLocal '= ""
 	{
 		set PASLocalContent = ##class(%DynamicObject).%New()
@@ -645,6 +721,7 @@ Method PractitionerResource(pArr As Ens.Request, Output pPractitionerResource As
 
 		do identifierArray.%Push(PASLocalContent)
 	}
+	*/
 
 	// National Code
 	if NationalCode '= ""
@@ -656,7 +733,7 @@ Method PractitionerResource(pArr As Ens.Request, Output pPractitionerResource As
 		do identifierArray.%Push(NationalCodeContent)
 	}
 
-	/*
+	
 	if ADLocal '= ""
 	{
 		set ADLocalContent = ##class(%DynamicObject).%New()
@@ -668,7 +745,7 @@ Method PractitionerResource(pArr As Ens.Request, Output pPractitionerResource As
 
 		do identifierArray.%Push(ADLocalContent)
 	}
-	*/
+	
 
 	set resource.identifier = identifierArray
 
@@ -724,7 +801,7 @@ Method OrganizationResource(pArr As Ens.Request, Output pOrganizationResource As
 	set phoneContent = ##class(%DynamicObject).%New()
     set phoneContent.system = "phone"
 	set phoneContent.value = "01234567890"
-	set phoneContent.use = "home"
+	set phoneContent.use = "work"
 	do telecomArray.%Push(phoneContent)
 
     set resource.telecom = telecomArray
