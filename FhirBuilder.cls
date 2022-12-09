@@ -144,9 +144,9 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pResponse As Ens.Respons
 	do BundleArray.%Push(pOrganizationResource)
 	do BundleArray.%Push(pGPPractitionerRoleResource)
 	do BundleArray.%Push(pPractitionerResource)
-	do BundleArray.%Push(pPractitionerRoleResource)
+	;do BundleArray.%Push(pPractitionerRoleResource)
 	do BundleArray.%Push(pConsentResource)
-	do BundleArray.%Push(pFlagResource)
+	;do BundleArray.%Push(pFlagResource)
 
 	set tsc = ..BundleBuilder(pArr, BundleArray, .BundleResource) // Bundle
 	set strmCont=##class(Ens.StreamContainer).%New()
@@ -204,19 +204,11 @@ Method BundleBuilder(pArr As Ens.Request, pBundleArray As %DynamicArray, Output 
 	set iterator=pBundleArray.%GetIterator()
 	while iterator.%GetNext(.key,.val) {
 		Set resourceElement = ##class(%DynamicObject).%New()
-    	set resourceElement.fullUrl = "https://www.northerncarealliance.nhs.uk/fhir-profiles/"_val.resourceType_"/id"
-
 		// ID
-		if val.resourceType = "Patient" {
-			set resourceElement.id = patientID
-		}
-		elseif val.resourceType = "Practitioner" {
-			set resourceElement.id = pArr.GetAt("NationalCode")
-		}
-		else {
-			set resourceElement.id = $System.Util.CreateGUID()
-		}
-
+		set Guid = $System.Util.CreateGUID()
+    	set resourceElement.fullUrl = "https://www.northerncarealliance.nhs.uk/fhir-profiles/"_val.resourceType_"/"_Guid
+		set resourceElement.id = Guid
+		
 		// Resource entry
     	set resourceElement.resource = val
 
