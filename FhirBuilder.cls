@@ -10,7 +10,7 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pResponse As Ens.Respons
 	Set relationshipLKUP = "NCA.RelationShipCodes"
 	Set genderLKUP = "NCA.GenderCode"
 	Set ethnicityLKUP = "NCA.Ethnicity"
-	// Test
+
 	// NHS Number / Local Code
 	Set Count=pRequest.GetValueAt("PID:3(*)")
 	For i=1:1:Count 
@@ -146,6 +146,8 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pResponse As Ens.Respons
 	do BundleArray.%Push(pPractitionerResource)
 	;do BundleArray.%Push(pPractitionerRoleResource)
 	do BundleArray.%Push(pConsentResource)
+	do BundleArray.%Push(pConsentResource)
+	do BundleArray.%Push(pConsentResource)
 	;do BundleArray.%Push(pFlagResource)
 
 	set tsc = ..BundleBuilder(pArr, BundleArray, .BundleResource) // Bundle
@@ -171,6 +173,10 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pResponse As Ens.Respons
 	Set tsc=..SendRequestSync("NCAOps",strmCont)
 
 	;$$$TRACE("pArr.Count(): "_pArr.Count())
+	; 
+	// Concept Map test
+	set tsc = ..ConceptMapParams(.StremToConceptMap) // ConsentRequest
+	Set tsc=..SendRequestSync("ConceptMaps", StremToConceptMap)
 
 	quit tsc
 }
@@ -204,7 +210,7 @@ Method BundleBuilder(pArr As Ens.Request, pBundleArray As %DynamicArray, Output 
 	set iterator=pBundleArray.%GetIterator()
 	while iterator.%GetNext(.key,.val) {
 		Set resourceElement = ##class(%DynamicObject).%New()
-		// ID
+		// ID & fullUrl
 		set Guid = $System.Util.CreateGUID()
     	set resourceElement.fullUrl = "https://www.northerncarealliance.nhs.uk/fhir-profiles/"_val.resourceType_"/"_Guid
 		set resourceElement.id = Guid
@@ -219,15 +225,6 @@ Method BundleBuilder(pArr As Ens.Request, pBundleArray As %DynamicArray, Output 
 		set resourceElement.request = requestContent
     	do entryArray.%Push(resourceElement)
 	}
-
-	/* Request resource
-	set request = ##class(%DynamicObject).%New()
-	set requestContent = ##class(%DynamicObject).%New()
-	set requestContent.method = "POST"
-	set requestContent.url = "Patient/"_patientID
-	set request.request = requestContent
-    do entryArray.%Push(request)
-	*/
 
 	// Bundle entry
     set bundle.entry = entryArray
@@ -1064,7 +1061,7 @@ Method ServiceRequestResource(pArr As Ens.Request, Output pServiceRequestResourc
 	quit tsc
 }
 
-Method CodeableConcept(pSystem As %String, pCode As %String, pDisplay As %String, Output pCodeConcept As %DynamicObject, Output pDynObject As %DynamicObject)
+Method CodeableConcept(pSystem As %String, pCode As %String, pDisplay As %String, Output pCodeConcept As %DynamicObject, Output pDynObject As %DynamicObject) As %Status
 {
 	set tsc = $$$OK
 
@@ -1095,12 +1092,38 @@ Method AssignerBuilder(pReference As %String) As %Status
     quit tsc
 }
 
-Method SetPeriod(start As %String, end As %String, Output pDynObject As %DynamicObject)
+Method SetPeriod(start As %String, end As %String, Output pDynObject As %DynamicObject) As %Status
 {
 	set tsc=$$$OK
 	set pDynObject = ##class(%DynamicObject).%New()
 	set pDynObject.start = start
 	set pDynObject.end = end
+
+	quit tsc
+}
+
+Method ConceptMapParams(Output strmCont As Ens.StreamContainer) As %Status
+{
+	set tsc = $$$OK
+
+	set strmCont=##class(Ens.StreamContainer).%New()
+	set strm = ##class(%Stream.GblChrCompress).%New()
+
+	set pDynObject = ##class(%DynamicObject).%New()
+	set pDynObject.system = "http://hl7.org/fhir/ValueSet/administrative-gender"
+	set pDynObject.code = "M"
+	set pDynObject.source = "https://fhir.simplifier.net/NCA-TESTS/ConceptMap/b6648143-4a37-413f-97cb-08796d1d765e"
+	set pDynObject.target = "https://simplifier.net/packages/hl7.fhir.r4.core/4.0.1/files/81193"
+
+	set strm = ##class(%Stream.GblChrCompress).%New()
+	set formatter = ##class(%JSON.Formatter).%New()
+	set Inputstring = pDynObject.%ToJSON()
+	$$$TRACE("Inputstring:*****"_Inputstring)
+	do formatter.FormatToStream(Inputstring, .strm)
+
+	$$$TRACE(strm)
+	set strmCont.Stream=strm
+	$$$TRACE(strmCont)
 
 	quit tsc
 }
