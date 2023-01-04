@@ -125,7 +125,7 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pResponse As Ens.Respons
 	// Encounter
 	do pArr.SetAt(pRequest.GetValueAt("EVN:19"), "EncounterIdentifier")
 
-    // Build resrouces
+    // Build resources
 	set tsc = ..PatientResource(pArr, .pPatientResource) // Patient
 	set tsc = ..GPPractitionerRoleResource(pArr, .pGPPractitionerRoleResource) //GPPractitionerRole
 	set tsc = ..PractitionerRoleResource(pArr, .pPractitionerRoleResource) //PractitionerRole
@@ -141,9 +141,10 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pResponse As Ens.Respons
 	// Bundle building: pending the logic
 	set BundleArray = ##class(%DynamicArray).%New()
 	do BundleArray.%Push(pPatientResource)
-	do BundleArray.%Push(pOrganizationResource)
+	;do BundleArray.%Push(pOrganizationResource)
 	do BundleArray.%Push(pGPPractitionerRoleResource)
 	do BundleArray.%Push(pPractitionerResource)
+	do BundleArray.%Push(pLocationResource)
 	;do BundleArray.%Push(pPractitionerRoleResource)
 	do BundleArray.%Push(pConsentResource)
 	do BundleArray.%Push(pConsentResource)
@@ -510,8 +511,8 @@ Method PatientResource(pArr As Ens.Request, Output pPatientResource As %DynamicO
 	}
 	*/
 
-	set tsc = ..ConsentResource(pArr) // Consent resource
-	set tsc = ..FlagResource(pArr) // Flag resource
+	;set tsc = ..ConsentResource(pArr) // Consent resource
+	;set tsc = ..FlagResource(pArr) // Flag resource
 
     set pPatientResource = resource
 	
