@@ -9,10 +9,9 @@ Parameter INVOCATION = "Queue";
 
 Method SendFHIR(pMsgIn As Ens.StreamContainer, Output pResponse As Ens.Response)
 {
-	set sc=$$$OK
+	set tsc=$$$OK
 	
 	set strm=pMsgIn.Stream
-	
 	
 	SET tHTTPReq=##class(%Net.HttpRequest).%New()	
 	DO tHTTPReq.SetHeader("Content-Type","application/json")
@@ -21,7 +20,7 @@ Method SendFHIR(pMsgIn As Ens.StreamContainer, Output pResponse As Ens.Response)
 	SET ..Adapter.URL="https://server.fire.ly"
 	SET tHTTPReq.EntityBody=strm	
 	
-	SET ts=..Adapter.SendFormDataArray(.tHttpResponse, "POST", tHTTPReq)
+	SET tsc=..Adapter.SendFormDataArray(.tHttpResponse, "POST", tHTTPReq)
 	
 	#DIM tHttpResponse As %Net.HttpResponse
 	
@@ -32,7 +31,7 @@ Method SendFHIR(pMsgIn As Ens.StreamContainer, Output pResponse As Ens.Response)
 	
 	set pResponse=response
 	
-	quit sc
+	quit tsc
 }
 
 XData MessageMap
