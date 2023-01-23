@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="IRIS" version="26" zv="IRIS for Windows (x86-64) 2022.1 (Build 209U)" ts="2023-01-23 09:12:56">
+<Document name="NCA.TrustDetails.LUT">
+<lookupTable>
+<entry table="NCA.TrustAddress" key="RM3">SALFORD ROYAL/STOTT LANE/SALFORD/GREATER MANCHESTER/M6 8HD/01617897373</entry>
+<entry table="NCA.TrustAddress" key="RW6">NORTH MANCHESTER GENERAL HOSPITAL/DELAUNAYS ROAD, CRUMPSALL/MANCHESTER/M8 5RB/01616240420</entry>
+</lookupTable>
+</Document></Export>

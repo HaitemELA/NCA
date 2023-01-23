@@ -1,8 +1,168 @@
-Class NCA.FhirBuilder Extends Ens.BusinessProcess [ ClassType = persistent ]
-{
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="IRIS" version="26" zv="IRIS for Windows (x86-64) 2022.1 (Build 209U)" ts="2023-01-23 09:59:28">
+<Project name="EnsExportProduction_2023-01-23 09-58-50_211+0" LastModified="2023-01-23 09:59:28.6138397">
+  <ProjectDescription>Studio Project generated from Production 'INFORMATION.NewProduction' at 2023-01-23 09:58:50.211 UTC</ProjectDescription>
+  <Items>
+    <ProjectItem name="INFORMATION.NewProduction" type="CLS"></ProjectItem>
+    <ProjectItem name="NCA.ConceptMapsTranslate" type="CLS"></ProjectItem>
+    <ProjectItem name="NCA.FhirBuilder" type="CLS"></ProjectItem>
+    <ProjectItem name="NCA.HTTPOut" type="CLS"></ProjectItem>
+    <ProjectItem name="EnsExportNotes.EnsExportProduction_2023-01-23 09-58-50_211+0.PTD" type="PTD"></ProjectItem>
+  </Items>
+</Project>
 
-Method OnRequest(pRequest As EnsLib.HL7.Message, Output pResponse As Ens.Response) As %Status
-{
+
+<Class name="INFORMATION.NewProduction">
+<Super>Ens.Production</Super>
+<TimeChanged>66497,34651.4890692</TimeChanged>
+<TimeCreated>66399,44718.3499753</TimeCreated>
+
+<XData name="ProductionDefinition">
+<Data><![CDATA[
+<Production Name="INFORMATION.NewProduction" LogGeneralTraceEvents="false">
+  <Description></Description>
+  <ActorPoolSize>2</ActorPoolSize>
+  <Item Name="MsgRouter" Category="" ClassName="EnsLib.HL7.MsgRouter.RoutingEngine" PoolSize="1" Enabled="false" Foreground="false" Comment="Cela permet de gérer la logique de routage." LogTraceEvents="false" Schedule="">
+    <Setting Target="Host" Name="Validation"></Setting>
+    <Setting Target="Host" Name="BusinessRuleName">INFORMATION.NewProduction.RoutingRule</Setting>
+    <Setting Target="Host" Name="BadMessageHandler">BadMessageHandler</Setting>
+  </Item>
+  <Item Name="BadMessageHandler" Category="" ClassName="EnsLib.HL7.Operation.FileOperation" PoolSize="1" Enabled="false" Foreground="false" Comment="Bad messages are sent to this operation." LogTraceEvents="false" Schedule="">
+  </Item>
+  <Item Name="Ens.Alert" Category="" ClassName="EnsLib.MsgRouter.RoutingEngine" PoolSize="0" Enabled="true" Foreground="false" Comment="This handles Alert routing logic." LogTraceEvents="false" Schedule="">
+    <Setting Target="Host" Name="BusinessRuleName">INFORMATION.NewProduction.AlertRule</Setting>
+  </Item>
+  <Item Name="EMailAlert" Category="" ClassName="EnsLib.EMail.AlertOperation" PoolSize="1" Enabled="false" Foreground="false" Comment="This sends alerts via e-mail." LogTraceEvents="false" Schedule="">
+  </Item>
+  <Item Name="PagerAlert" Category="" ClassName="EnsLib.EMail.AlertOperation" PoolSize="1" Enabled="false" Foreground="false" Comment="This sends alerts to a pager via e-mail." LogTraceEvents="false" Schedule="">
+  </Item>
+  <Item Name="HL7FileService" Category="" ClassName="EnsLib.HL7.Service.FileService" PoolSize="1" Enabled="false" Foreground="false" Comment="This is a default HL7 File Service." LogTraceEvents="false" Schedule="">
+    <Setting Target="Host" Name="TargetConfigNames">MsgRouter</Setting>
+  </Item>
+  <Item Name="HL7FileOperation" Category="" ClassName="EnsLib.HL7.Operation.FileOperation" PoolSize="1" Enabled="false" Foreground="false" Comment="This is a default HL7 File Operation." LogTraceEvents="false" Schedule="">
+  </Item>
+  <Item Name="HL7TOFHIR" Category="" ClassName="NCA.Hl7toFhir" PoolSize="1" Enabled="false" Foreground="false" Comment="" LogTraceEvents="true" Schedule="">
+  </Item>
+  <Item Name="HL7HTTP" Category="" ClassName="EnsLib.HL7.Service.HTTPService" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="true" Schedule="">
+    <Setting Target="Adapter" Name="Port">9980</Setting>
+    <Setting Target="Host" Name="TargetConfigNames">HL7TOFHIRV2</Setting>
+    <Setting Target="Host" Name="MessageSchemaCategory">2.4</Setting>
+  </Item>
+  <Item Name="HL7TOFHIRV2" Category="" ClassName="NCA.FhirBuilder" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="true" Schedule="">
+  </Item>
+  <Item Name="NCAOps" Category="" ClassName="NCA.HTTPOut" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="true" Schedule="">
+    <Setting Target="Adapter" Name="HTTPPort"></Setting>
+    <Setting Target="Adapter" Name="HTTPServer"></Setting>
+    <Setting Target="Adapter" Name="URL"></Setting>
+    <Setting Target="Adapter" Name="SSLConfig"></Setting>
+    <Setting Target="Adapter" Name="RegistryID"></Setting>
+    <Setting Target="Adapter" Name="SSLCheckServerIdentity">0</Setting>
+  </Item>
+  <Item Name="ConceptMaps" Category="" ClassName="NCA.ConceptMapsTranslate" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="true" Schedule="">
+    <Setting Target="Adapter" Name="HTTPPort">443</Setting>
+    <Setting Target="Adapter" Name="HTTPServer">https://fhir.simplifier.net/NCA-TESTS/$translate?</Setting>
+    <Setting Target="Adapter" Name="URL"></Setting>
+    <Setting Target="Adapter" Name="SSLCheckServerIdentity">0</Setting>
+  </Item>
+  <Item Name="HL7HTTP_Custom" Category="" ClassName="EnsLib.HL7.Service.HTTPService" PoolSize="1" Enabled="false" Foreground="false" Comment="" LogTraceEvents="true" Schedule="">
+    <Setting Target="Adapter" Name="Port">9985</Setting>
+    <Setting Target="Host" Name="TargetConfigNames">HL7TOFHIRV2</Setting>
+    <Setting Target="Host" Name="MessageSchemaCategory">MySchema_2.4</Setting>
+  </Item>
+</Production>
+]]></Data>
+</XData>
+</Class>
+
+
+<Class name="NCA.ConceptMapsTranslate">
+<Super>Ens.BusinessOperation</Super>
+<TimeChanged>66463,54193.354911</TimeChanged>
+<TimeCreated>66456,59538.7505816</TimeCreated>
+
+<Parameter name="ADAPTER">
+<Default>EnsLib.HTTP.OutboundAdapter</Default>
+</Parameter>
+
+<Property name="Adapter">
+<Type>EnsLib.HTTP.OutboundAdapter</Type>
+</Property>
+
+<Parameter name="INVOCATION">
+<Default>Queue</Default>
+</Parameter>
+
+<Method name="SendFHIR">
+<FormalSpec>strmCont:Ens.StreamContainer,*pResponse:Ens.Response</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+    
+    Set tsc = $$$OK
+    Set tHTTPReq=##class(%Net.HttpRequest).%New()
+	set strm = strmCont.Stream
+    
+	;DO tHTTPReq.SetHeader("Content-Type","application/json")
+
+	Set URL = ..Adapter.HTTPServer_"/"_..Adapter.URL
+    $$$TRACE("URL: "_URL)
+   ;do tHTTPReq.SetParam("system", strm.system)
+   ;do tHTTPReq.SetParam("code", strm.code)
+   ;do tHTTPReq.SetParam("source", strm.source)
+   ;do tHTTPReq.SetParam("target", strm.target)
+   ;do tHTTPReq.SetParam("_format", "json")
+
+  /*
+   $$$TRACE(strm.system)
+   $$$TRACE(strm.code)
+   $$$TRACE(strm.source)
+   $$$TRACE(strm.target)
+   */
+    
+    do tHTTPReq.SetParam("system", "http://hl7.org/fhir/address-use")
+    do tHTTPReq.SetParam("code", "home")
+    do tHTTPReq.SetParam("source", "http://hl7.org/fhir/ValueSet/address-use")
+    do tHTTPReq.SetParam("target", "http://terminology.hl7.org/ValueSet/v3-AddressUse")
+    do tHTTPReq.SetParam("_format", "json")
+    
+	SET tsc=..Adapter.SendFormDataArray(.tHttpResponse, "POST", tHTTPReq)
+	
+	#DIM tHttpResponse As %Net.HttpResponse
+	
+	set response=##class(NCA.HttpResponse).%New()
+
+	;set response.StatusCode= tHttpResponse.StatusCode
+	set response.ResponseBody=tHttpResponse.Data.Read()
+
+    $$$TRACE(tHttpResponse.Data.Read())
+	
+	set pResponse=response
+
+    quit tsc
+]]></Implementation>
+</Method>
+
+<XData name="MessageMap">
+<Data><![CDATA[
+<MapItems>
+<MapItem MessageType="Ens.StreamContainer">
+<Method>SendFHIR</Method>
+</MapItem>
+</MapItems>
+]]></Data>
+</XData>
+</Class>
+
+
+<Class name="NCA.FhirBuilder">
+<ClassType>persistent</ClassType>
+<Super>Ens.BusinessProcess</Super>
+<TimeChanged>66497,34645.522012</TimeChanged>
+<TimeCreated>66437,33176.8049599</TimeCreated>
+
+<Method name="OnRequest">
+<FormalSpec>pRequest:EnsLib.HL7.Message,*pResponse:Ens.Response</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
 	set tsc = $$$OK
 	/*
 	Try {
@@ -191,12 +351,20 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pResponse As Ens.Respons
 	Set tsc=..SendRequestSync("ConceptMaps", StremToConceptMap)
 
 	quit tsc
-}
+]]></Implementation>
+</Method>
 
+<UDLText name="T">
+<Content><![CDATA[
 // BundleBuilder
 
-Method BundleBuilder(pArr As Ens.Request, pBundleArray As %DynamicArray, Output bundle As %DynamicObject) As %Status
-{
+]]></Content>
+</UDLText>
+
+<Method name="BundleBuilder">
+<FormalSpec>pArr:Ens.Request,pBundleArray:%DynamicArray,*bundle:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
 	set tsc = $$$OK
 	Try {
 		set nhsNumber = pArr.GetAt("NhsNumberContent.value")
@@ -243,12 +411,20 @@ Method BundleBuilder(pArr As Ens.Request, pBundleArray As %DynamicArray, Output 
 		do ex.Log()
 	}
 	Quit tsc
-}
+]]></Implementation>
+</Method>
 
+<UDLText name="T">
+<Content><![CDATA[
 // Patient Resource
 
-Method PatientResource(pArr As Ens.Request, Output pPatientResource As %DynamicObject) As %Status
-{
+]]></Content>
+</UDLText>
+
+<Method name="PatientResource">
+<FormalSpec>pArr:Ens.Request,*pPatientResource:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
 	set tsc = $$$OK
 	Try {
 		// Create a new resource
@@ -531,12 +707,20 @@ Method PatientResource(pArr As Ens.Request, Output pPatientResource As %DynamicO
 		do ex.Log()
 	}
 	Quit tsc
-}
+]]></Implementation>
+</Method>
 
+<UDLText name="T">
+<Content><![CDATA[
 // Consent resource
 
-Method ConsentResource(pArr As Ens.Request, Output pConsentResource As %DynamicObject) As %Status
-{
+]]></Content>
+</UDLText>
+
+<Method name="ConsentResource">
+<FormalSpec>pArr:Ens.Request,*pConsentResource:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
 	set tsc=$$$OK
 	Try {
 		set nhsNumber = pArr.GetAt("NhsNumberContent.value")
@@ -591,10 +775,13 @@ Method ConsentResource(pArr As Ens.Request, Output pConsentResource As %DynamicO
 		do ex.Log()
 	}
 	Quit tsc
-}
+]]></Implementation>
+</Method>
 
-Method FlagResource(pArr As Ens.Request, Output pFlagResource As %DynamicObject) As %Status
-{
+<Method name="FlagResource">
+<FormalSpec>pArr:Ens.Request,*pFlagResource:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
 	set tsc=$$$OK
 	Try {
 		set nhsNumber = pArr.GetAt("NhsNumberContent.value")
@@ -635,12 +822,20 @@ Method FlagResource(pArr As Ens.Request, Output pFlagResource As %DynamicObject)
 	}
 
 	Quit tsc
-}
+]]></Implementation>
+</Method>
 
+<UDLText name="T">
+<Content><![CDATA[
 // GPPractitionerRole resource
 
-Method GPPractitionerRoleResource(pArr As Ens.Request, Output pGPPractitionerRoleResource As %DynamicObject) As %Status
-{
+]]></Content>
+</UDLText>
+
+<Method name="GPPractitionerRoleResource">
+<FormalSpec>pArr:Ens.Request,*pGPPractitionerRoleResource:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
 	set tsc = $$$OK
 	Try {
 		set resource = ##class(%DynamicObject).%New()
@@ -675,12 +870,20 @@ Method GPPractitionerRoleResource(pArr As Ens.Request, Output pGPPractitionerRol
 		do ex.Log()
 	}
 	Quit tsc
-}
+]]></Implementation>
+</Method>
 
+<UDLText name="T">
+<Content><![CDATA[
 // PractitionerRole
 
-Method PractitionerRoleResource(pArr As Ens.Request, Output pPractitionerRoleResource As %DynamicObject) As %Status
-{
+]]></Content>
+</UDLText>
+
+<Method name="PractitionerRoleResource">
+<FormalSpec>pArr:Ens.Request,*pPractitionerRoleResource:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
 	set tsc = $$$OK
 	Try {
 		set resource = ##class(%DynamicObject).%New()
@@ -721,12 +924,20 @@ Method PractitionerRoleResource(pArr As Ens.Request, Output pPractitionerRoleRes
 	}
 
 	Quit tsc
-}
+]]></Implementation>
+</Method>
 
+<UDLText name="T">
+<Content><![CDATA[
 // Practitioner Resource
 
-Method PractitionerResource(pArr As Ens.Request, Output pPractitionerResource As %DynamicObject) As %Status
-{
+]]></Content>
+</UDLText>
+
+<Method name="PractitionerResource">
+<FormalSpec>pArr:Ens.Request,*pPractitionerResource:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
 	set tsc = $$$OK
 	Try {
 		set PASLocal = pArr.GetAt("PASLocal")
@@ -802,12 +1013,20 @@ Method PractitionerResource(pArr As Ens.Request, Output pPractitionerResource As
 	}
 
 	Quit tsc
-}
+]]></Implementation>
+</Method>
 
+<UDLText name="T">
+<Content><![CDATA[
 // Organization resource
 
-Method OrganizationResource(pArr As Ens.Request, Output pOrganizationResource As %DynamicObject) As %Status
-{
+]]></Content>
+</UDLText>
+
+<Method name="OrganizationResource">
+<FormalSpec>pArr:Ens.Request,*pOrganizationResource:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
 	set tsc = $$$OK
 	Try {
 		set OdsCode = pArr.GetAt("odsOrganisationCode")
@@ -881,12 +1100,20 @@ Method OrganizationResource(pArr As Ens.Request, Output pOrganizationResource As
 	}
 
 	Quit tsc
-}
+]]></Implementation>
+</Method>
 
+<UDLText name="T">
+<Content><![CDATA[
 // Location resource
 
-Method LocationResource(pArr As Ens.Request, Output pLocationResource As %DynamicObject) As %Status
-{
+]]></Content>
+</UDLText>
+
+<Method name="LocationResource">
+<FormalSpec>pArr:Ens.Request,*pLocationResource:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
 	set tsc = $$$OK
 	Try {
 		// Create a new resource
@@ -930,12 +1157,20 @@ Method LocationResource(pArr As Ens.Request, Output pLocationResource As %Dynami
 	
 
 	Quit tsc
-}
+]]></Implementation>
+</Method>
 
+<UDLText name="T">
+<Content><![CDATA[
 // EpisodeOfCare resource
 
-Method EpisodeOfCareResource(pArr As Ens.Request, Output pEpisodeOfCareResource As %DynamicObject) As %Status
-{
+]]></Content>
+</UDLText>
+
+<Method name="EpisodeOfCareResource">
+<FormalSpec>pArr:Ens.Request,*pEpisodeOfCareResource:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
 	set tsc = $$$OK
 	Try {
 		set resource = ##class(%DynamicObject).%New()
@@ -980,12 +1215,20 @@ Method EpisodeOfCareResource(pArr As Ens.Request, Output pEpisodeOfCareResource 
 	}
 
 	Quit tsc
-}
+]]></Implementation>
+</Method>
 
+<UDLText name="T">
+<Content><![CDATA[
 // EpisodeOfCare resource
 
-Method EncounterResource(pArr, Output pEncounterResource As %DynamicObject) As %Status
-{
+]]></Content>
+</UDLText>
+
+<Method name="EncounterResource">
+<FormalSpec>pArr,*pEncounterResource:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
 	set tsc = $$$OK
 	Try {
 		set resource = ##class(%DynamicObject).%New()
@@ -1085,10 +1328,13 @@ Method EncounterResource(pArr, Output pEncounterResource As %DynamicObject) As %
 		do ex.Log()
 	}
 	quit tsc
-}
+]]></Implementation>
+</Method>
 
-Method ServiceRequestResource(pArr As Ens.Request, Output pServiceRequestResource As %DynamicObject) As %Status
-{
+<Method name="ServiceRequestResource">
+<FormalSpec>pArr:Ens.Request,*pServiceRequestResource:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
 	set tsc = $$$OK
 	Try {
 		set resource = ##class(%DynamicObject).%New()
@@ -1146,10 +1392,13 @@ Method ServiceRequestResource(pArr As Ens.Request, Output pServiceRequestResourc
 		do ex.Log()
 	}
 	quit tsc
-}
+]]></Implementation>
+</Method>
 
-Method CodeableConcept(pSystem As %String, pCode As %String, pDisplay As %String, Output pCodeConcept As %DynamicObject, Output pDynObject As %DynamicObject) As %Status
-{
+<Method name="CodeableConcept">
+<FormalSpec>pSystem:%String,pCode:%String,pDisplay:%String,*pCodeConcept:%DynamicObject,*pDynObject:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
 	set tsc = $$$OK
 
 	set pCodeConcept = ##class(%DynamicObject).%New()
@@ -1165,10 +1414,13 @@ Method CodeableConcept(pSystem As %String, pCode As %String, pDisplay As %String
 	quit tsc
 
     #; listpart is valid
-}
+]]></Implementation>
+</Method>
 
-Method AssignerBuilder(pReference As %String) As %Status
-{
+<Method name="AssignerBuilder">
+<FormalSpec>pReference:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
     set tsc = $$$OK
     set AssignerArray = ##class(%DynamicArray).%New()
 	set Assigner = ##class(%DynamicObject).%New()
@@ -1177,20 +1429,26 @@ Method AssignerBuilder(pReference As %String) As %Status
 
     return AssignerArray
     quit tsc
-}
+]]></Implementation>
+</Method>
 
-Method SetPeriod(start As %String, end As %String, Output pDynObject As %DynamicObject) As %Status
-{
+<Method name="SetPeriod">
+<FormalSpec>start:%String,end:%String,*pDynObject:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
 	set tsc=$$$OK
 	set pDynObject = ##class(%DynamicObject).%New()
 	set pDynObject.start = start
 	set pDynObject.end = end
 
 	quit tsc
-}
+]]></Implementation>
+</Method>
 
-Method ConceptMapParams(Output strmCont As Ens.StreamContainer) As %Status
-{
+<Method name="ConceptMapParams">
+<FormalSpec>*strmCont:Ens.StreamContainer</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
 	set tsc = $$$OK
 
 	set strmCont=##class(Ens.StreamContainer).%New()
@@ -1213,17 +1471,102 @@ Method ConceptMapParams(Output strmCont As Ens.StreamContainer) As %Status
 	$$$TRACE(strmCont)
 
 	quit tsc
-}
+]]></Implementation>
+</Method>
 
-Method OnResponse() As %Status
-{
+<Method name="OnResponse">
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
 	$$$TRACE("Trace_OnResponse")
 	q $$$OK
-}
+]]></Implementation>
+</Method>
 
-Storage Default
-{
+<Storage name="Default">
 <Type>%Storage.Persistent</Type>
-}
+</Storage>
+</Class>
 
-}
+
+<Class name="NCA.HTTPOut">
+<Super>Ens.BusinessOperation</Super>
+<TimeChanged>66457,55084.9302503</TimeChanged>
+<TimeCreated>66443,34590.0890268</TimeCreated>
+
+<Parameter name="ADAPTER">
+<Default>EnsLib.HTTP.OutboundAdapter</Default>
+</Parameter>
+
+<Property name="Adapter">
+<Type>EnsLib.HTTP.OutboundAdapter</Type>
+</Property>
+
+<Parameter name="INVOCATION">
+<Default>Queue</Default>
+</Parameter>
+
+<Method name="SendFHIR">
+<FormalSpec>pMsgIn:Ens.StreamContainer,*pResponse:Ens.Response</FormalSpec>
+<Implementation><![CDATA[
+	set tsc=$$$OK
+	
+	set strm=pMsgIn.Stream
+	
+	SET tHTTPReq=##class(%Net.HttpRequest).%New()	
+	DO tHTTPReq.SetHeader("Content-Type","application/json")
+
+	;SET ..Adapter.URL="http://hapi.fhir.org/baseR4"
+	SET ..Adapter.URL="https://server.fire.ly"
+	SET tHTTPReq.EntityBody=strm	
+	
+	SET tsc=..Adapter.SendFormDataArray(.tHttpResponse, "POST", tHTTPReq)
+	
+	#DIM tHttpResponse As %Net.HttpResponse
+	
+	set response=##class(NCA.HttpResponse).%New()
+
+	set response.StatusCode= tHttpResponse.StatusCode
+	set response.ResponseBody=tHttpResponse.Data.Read()
+	
+	set pResponse=response
+	
+	quit tsc
+]]></Implementation>
+</Method>
+
+<XData name="MessageMap">
+<Data><![CDATA[
+<MapItems>
+<MapItem MessageType="Ens.StreamContainer">
+<Method>SendFHIR</Method>
+</MapItem>
+</MapItems>
+]]></Data>
+</XData>
+</Class>
+
+
+<Document name="EnsExportNotes.EnsExportProduction_2023-01-23 09-58-50_211+0.PTD"><ProjectTextDocument name="EnsExportNotes.EnsExportProduction_2023-01-23 09-58-50_211+0" description="Export Notes for export EnsExportProduction_2023-01-23 09-58-50_211+0">
+<![CDATA[<Deployment>
+<Creation>
+<Machine>DESKTOP-0B5KC8A</Machine>
+<Instance>IRISHEALTH</Instance>
+<Namespace>USER</Namespace>
+<SourceProduction>INFORMATION.NewProduction</SourceProduction>
+<Username>Imtech</Username>
+<UTC>2023-01-23 09:59:28.611</UTC>
+</Creation>
+<Notes>
+</Notes>
+<Contents>
+<ExportProject>EnsExportProduction_2023-01-23 09-58-50_211+0</ExportProject>
+<Item num="1">INFORMATION.NewProduction.CLS</Item>
+<Item num="2">NCA.ConceptMapsTranslate.CLS</Item>
+<Item num="3">NCA.FhirBuilder.CLS</Item>
+<Item num="4">NCA.HTTPOut.CLS</Item>
+</Contents>
+<ProductionClassInExport>INFORMATION.NewProduction</ProductionClassInExport>
+</Deployment>
+
+]]></ProjectTextDocument>
+</Document></Export>
