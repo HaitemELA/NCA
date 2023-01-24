@@ -26,12 +26,13 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pResponse As Ens.Respons
 	{	
 		If (pRequest.GetValueAt("PID:3("_i_").5")="NHS")
 		   	{
-			   	Set nhsNumber=(pRequest.GetValueAt("PID:3("_i_").1"))
-			   	Set nhsAssigner=(pRequest.GetValueAt("PID:3("_i_").4"))
+			   	Set nhsNumber=pRequest.GetValueAt("PID:3("_i_").1")
+			   	Set nhsAssigner=pRequest.GetValueAt("PID:3("_i_").4")
 		   	}
 		If (pRequest.GetValueAt("PID:3("_i_").5")="DN")
 		   	{
-			   	Set LocalCode=(pRequest.GetValueAt("PID:3("_i_").1"))
+			   	Set LocalCode=pRequest.GetValueAt("PID:3("_i_").1")
+			   	Set CodeAssigner=pRequest.GetValueAt("PID:3("_i_").4")
 		   	}
 	}
 
@@ -43,6 +44,7 @@ Method OnRequest(pRequest As EnsLib.HL7.Message, Output pResponse As Ens.Respons
 	do pArr.SetAt(nhsNumber, "NhsNumberContent.value")
 	do pArr.SetAt(nhsAssigner, "NhsNumberAssigner")
 	do pArr.SetAt(LocalCode, "LocalCode")
+	do pArr.SetAt(CodeAssigner, "LocalCodeAssigner")
 	do pArr.SetAt(pRequest.GetValueAt("PID:5.5"), "prefixContent")
 	do pArr.SetAt(pRequest.GetValueAt("PID:5.1"), "nameContent.family")
 	do pArr.SetAt(pRequest.GetValueAt("PID:5.2"), "givenNameContent.given")
@@ -279,8 +281,10 @@ Method PatientResource(pArr As Ens.Request, Output pPatientResource As %DynamicO
 			set LocalContent = ##class(%DynamicObject).%New()
 			set LocalContent.system = "ODS-Local"
 			set LocalContent.value = LocalCode
-			set LocalContent.assigner = ..AssignerBuilder("Organization/RW6orRM3")
-
+			if pArr.GetAt("LocalCodeAssigner") '= ""
+			{
+				set LocalContent.assigner = ..AssignerBuilder("Organization/"_pArr.GetAt("LocalCodeAssigner"))
+			}
 			do identifierArray.%Push(LocalContent)
 		}
 
@@ -556,7 +560,7 @@ Method ConsentResource(pArr As Ens.Request, Output pConsentResource As %DynamicO
 
 		// Identifier
 		set IndentifierRef = ##class(%DynamicObject).%New()
-		set IndentifierRef.reference = "Organization/RW6orRM3" // need to check the field for the organization reference!
+		set IndentifierRef.reference = "Organization/"_pArr.GetAt("LocalCodeAssigner") // need to check the field for the organization reference!
 		set resource.identifier = IndentifierRef
 
 		// status
@@ -837,20 +841,13 @@ Method OrganizationResource(pArr As Ens.Request, Output pOrganizationResource As
 		set resource.identifier = identifierArray
 		
 		// Organization name
-		if OrganisationAddress '= "$D" && OrganisationAddress '= "$DE"
-		{
-			Set OrgAddList = $LISTFROMSTRING(OrganisationAddress,"/")
-			Set n = $ListLength(OrgAddList)
-		}
-		set resource.name = $List(OrgAddList,1)
+		if (OdsCode = "RW6") || (OdsCode = "RM3") {Set resource.name = "NORTH MANCHESTER GENERAL HOSPITAL"}
 
-		$$$TRACE($List(OrgAddList,1)_"/"_$List(OrgAddList,2)_"/"_$List(OrgAddList,3))
-
-    	// telecom: Need to lookUp?
+    	// telecom: Hardcode address & phone
     	set telecomArray = ##class(%DynamicArray).%New()
 		set phoneContent = ##class(%DynamicObject).%New()
     	set phoneContent.system = "phone"
-		set phoneContent.value = $List(OrgAddList, n)
+		set phoneContent.value = "01617897373"
 		set phoneContent.use = "work"
 		do telecomArray.%Push(phoneContent)
 
@@ -861,12 +858,15 @@ Method OrganizationResource(pArr As Ens.Request, Output pOrganizationResource As
 		set addressContent = ##class(%DynamicObject).%New()
 		set addressLinesArray = ##class(%DynamicArray).%New()
 
-		if OrganisationAddress '= "$D" && OrganisationAddress '= "$DE"
+		if (OdsCode = "RW6") || (OdsCode = "RM3")
 		{
-			For i=2:1:n-2 {do addressLinesArray.%Push($List(OrgAddList,i))}
+			do addressLinesArray.%Push("Mayo Building")
+			do addressLinesArray.%Push("Salford Royal")
+			do addressLinesArray.%Push("Stott Lane")
+			do addressLinesArray.%Push("Salford")
 		}
 		set addressContent.line = addressLinesArray
-		set addressContent.postalCode = $List(OrgAddList,n-1)
+		set addressContent.postalCode = "M6 8HD"
 		do addressArray.%Push(addressContent)
 
 		set resource.address = addressArray
@@ -907,6 +907,7 @@ Method LocationResource(pArr As Ens.Request, Output pLocationResource As %Dynami
 		set LocationCodeContent2.system = "https://fhir.nhs.uk/Id/ods-site-code"
 		set LocationCodeContent2.value = "########"
 		set LocationCodeContent2.assigner = ..AssignerBuilder("Organization/RW6orRM3")
+
 		do identifierArray.%Push(LocationCodeContent2)
 
 		set resource.identifier = identifierArray
@@ -926,9 +927,6 @@ Method LocationResource(pArr As Ens.Request, Output pLocationResource As %Dynami
 		Set tsc=ex.AsStatus()
 		do ex.Log()
 	}
-
-	
-
 	Quit tsc
 }
 
@@ -995,9 +993,12 @@ Method EncounterResource(pArr, Output pEncounterResource As %DynamicObject) As %
 		set identifier = ##class(%DynamicObject).%New()
 		set identifierArray = ##class(%DynamicArray).%New()
 		set identifierCoding = ##class(%DynamicObject).%New()
-		set identifierCoding.system = "http://example.com"
+		;set identifierCoding.system = "http://example.com" // Not in the guide? to remove?
 		set identifierCoding.value = pArr.GetAt("EncounterIdentifier")
-		set identifierCoding.assigner = ..AssignerBuilder("Organization/RW6orRM3")
+		if pArr.GetAt("LocalCodeAssigner") '= ""
+		{
+			set identifierCoding.assigner = ..AssignerBuilder("Organization/"_pArr.GetAt("LocalCodeAssigner"))
+		}
 
 		do identifierArray.%Push(identifierCoding)
 		set resource.identifier = identifierArray
