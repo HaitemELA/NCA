@@ -1,17 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Export generator="IRIS" version="26" zv="IRIS for Windows (x86-64) 2022.1 (Build 209U)" ts="2023-02-03 10:48:47">
-<Project name="EnsExportProduction_2023-02-03 10-48-28_859+0" LastModified="2023-02-03 10:48:47.3729777">
-  <ProjectDescription>Studio Project generated from Production 'INFORMATION.NewProduction' at 2023-02-03 10:48:28.859 UTC</ProjectDescription>
+<Export generator="IRIS" version="26" zv="IRIS for Windows (x86-64) 2022.1 (Build 209U)" ts="2023-02-03 10:57:59">
+<Project name="EnsExportProduction_2023-02-03 10-57-02_191+0" LastModified="2023-02-03 10:57:59.8174994">
+  <ProjectDescription>Studio Project generated from Production 'INFORMATION.NewProduction' at 2023-02-03 10:57:02.191 UTC</ProjectDescription>
   <Items>
     <ProjectItem name="INFORMATION.NewProduction" type="CLS"></ProjectItem>
+    <ProjectItem name="INFORMATION.NewProduction.AlertRule" type="CLS"></ProjectItem>
     <ProjectItem name="NCA.ConceptMapsTranslate" type="CLS"></ProjectItem>
     <ProjectItem name="NCA.HL7Dumper" type="CLS"></ProjectItem>
     <ProjectItem name="NCA.HTTPOut" type="CLS"></ProjectItem>
     <ProjectItem name="NCA.Resources" type="CLS"></ProjectItem>
     <ProjectItem name="NCA.GenderCode.LUT" type="LUT"></ProjectItem>
-    <ProjectItem name="EnsExportNotes.EnsExportProduction_2023-02-03 10-48-28_859+0.PTD" type="PTD"></ProjectItem>
+    <ProjectItem name="EnsExportNotes.EnsExportProduction_2023-02-03 10-57-02_191+0.PTD" type="PTD"></ProjectItem>
   </Items>
 </Project>
+
+
+<Class name="INFORMATION.NewProduction.AlertRule">
+<Description>
+</Description>
+<Super>Ens.Rule.Definition</Super>
+<TimeChanged>66399,44719.0863438</TimeChanged>
+<TimeCreated>66399,44719.0838865</TimeCreated>
+
+<Parameter name="RuleAssistClass">
+<Default>EnsLib.MsgRouter.RuleAssist</Default>
+</Parameter>
+
+<XData name="RuleDefinition">
+<XMLNamespace>http://www.intersystems.com/rule</XMLNamespace>
+<Data><![CDATA[
+<ruleDefinition alias="" context="EnsLib.MsgRouter.RoutingEngine" production="INFORMATION.NewProduction">
+<ruleSet name="" effectiveBegin="" effectiveEnd="">
+<rule name="">
+</rule>
+</ruleSet>
+</ruleDefinition>
+]]></Data>
+</XData>
+</Class>
 
 
 <Class name="INFORMATION.NewProduction">
@@ -1569,7 +1595,7 @@
 </Class>
 
 
-<Document name="EnsExportNotes.EnsExportProduction_2023-02-03 10-48-28_859+0.PTD"><ProjectTextDocument name="EnsExportNotes.EnsExportProduction_2023-02-03 10-48-28_859+0" description="Export Notes for export EnsExportProduction_2023-02-03 10-48-28_859+0">
+<Document name="EnsExportNotes.EnsExportProduction_2023-02-03 10-57-02_191+0.PTD"><ProjectTextDocument name="EnsExportNotes.EnsExportProduction_2023-02-03 10-57-02_191+0" description="Export Notes for export EnsExportProduction_2023-02-03 10-57-02_191+0">
 <![CDATA[<Deployment>
 <Creation>
 <Machine>DESKTOP-0B5KC8A</Machine>
@@ -1577,18 +1603,19 @@
 <Namespace>USER</Namespace>
 <SourceProduction>INFORMATION.NewProduction</SourceProduction>
 <Username>Imtech</Username>
-<UTC>2023-02-03 10:48:47.371</UTC>
+<UTC>2023-02-03 10:57:59.815</UTC>
 </Creation>
 <Notes>
 </Notes>
 <Contents>
-<ExportProject>EnsExportProduction_2023-02-03 10-48-28_859+0</ExportProject>
-<Item num="1">INFORMATION.NewProduction.CLS</Item>
-<Item num="2">NCA.ConceptMapsTranslate.CLS</Item>
-<Item num="3">NCA.GenderCode.LUT</Item>
-<Item num="4">NCA.HL7Dumper.CLS</Item>
-<Item num="5">NCA.HTTPOut.CLS</Item>
-<Item num="6">NCA.Resources.CLS</Item>
+<ExportProject>EnsExportProduction_2023-02-03 10-57-02_191+0</ExportProject>
+<Item num="1">INFORMATION.NewProduction.AlertRule.CLS</Item>
+<Item num="2">INFORMATION.NewProduction.CLS</Item>
+<Item num="3">NCA.ConceptMapsTranslate.CLS</Item>
+<Item num="4">NCA.GenderCode.LUT</Item>
+<Item num="5">NCA.HL7Dumper.CLS</Item>
+<Item num="6">NCA.HTTPOut.CLS</Item>
+<Item num="7">NCA.Resources.CLS</Item>
 </Contents>
 <ProductionClassInExport>INFORMATION.NewProduction</ProductionClassInExport>
 </Deployment>
