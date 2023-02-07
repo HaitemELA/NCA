@@ -1,48 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Export generator="IRIS" version="26" zv="IRIS for Windows (x86-64) 2022.1 (Build 209U)" ts="2023-02-03 10:57:59">
-<Project name="EnsExportProduction_2023-02-03 10-57-02_191+0" LastModified="2023-02-03 10:57:59.8174994">
-  <ProjectDescription>Studio Project generated from Production 'INFORMATION.NewProduction' at 2023-02-03 10:57:02.191 UTC</ProjectDescription>
+<Export generator="IRIS" version="26" zv="IRIS for Windows (x86-64) 2022.1 (Build 209U)" ts="2023-02-07 09:41:00">
+<Project name="EnsExportProduction_2023-02-07 09-40-08_482+0" LastModified="2023-02-07 09:41:00.2127749">
+  <ProjectDescription>Studio Project generated from Production 'INFORMATION.NewProduction' at 2023-02-07 09:40:08.482 UTC</ProjectDescription>
   <Items>
     <ProjectItem name="INFORMATION.NewProduction" type="CLS"></ProjectItem>
-    <ProjectItem name="INFORMATION.NewProduction.AlertRule" type="CLS"></ProjectItem>
     <ProjectItem name="NCA.ConceptMapsTranslate" type="CLS"></ProjectItem>
     <ProjectItem name="NCA.HL7Dumper" type="CLS"></ProjectItem>
     <ProjectItem name="NCA.HTTPOut" type="CLS"></ProjectItem>
     <ProjectItem name="NCA.Resources" type="CLS"></ProjectItem>
     <ProjectItem name="NCA.GenderCode.LUT" type="LUT"></ProjectItem>
-    <ProjectItem name="EnsExportNotes.EnsExportProduction_2023-02-03 10-57-02_191+0.PTD" type="PTD"></ProjectItem>
+    <ProjectItem name="EnsExportNotes.EnsExportProduction_2023-02-07 09-40-08_482+0.PTD" type="PTD"></ProjectItem>
   </Items>
 </Project>
 
 
-<Class name="INFORMATION.NewProduction.AlertRule">
-<Description>
-</Description>
-<Super>Ens.Rule.Definition</Super>
-<TimeChanged>66399,44719.0863438</TimeChanged>
-<TimeCreated>66399,44719.0838865</TimeCreated>
-
-<Parameter name="RuleAssistClass">
-<Default>EnsLib.MsgRouter.RuleAssist</Default>
-</Parameter>
-
-<XData name="RuleDefinition">
-<XMLNamespace>http://www.intersystems.com/rule</XMLNamespace>
-<Data><![CDATA[
-<ruleDefinition alias="" context="EnsLib.MsgRouter.RoutingEngine" production="INFORMATION.NewProduction">
-<ruleSet name="" effectiveBegin="" effectiveEnd="">
-<rule name="">
-</rule>
-</ruleSet>
-</ruleDefinition>
-]]></Data>
-</XData>
-</Class>
-
-
 <Class name="INFORMATION.NewProduction">
 <Super>Ens.Production</Super>
-<TimeChanged>66508,38893.5964613</TimeChanged>
+<TimeChanged>66512,33410.1630225</TimeChanged>
 <TimeCreated>66399,44718.3499753</TimeCreated>
 
 <XData name="ProductionDefinition">
@@ -79,6 +53,9 @@
     <Setting Target="Adapter" Name="SSLCheckServerIdentity">0</Setting>
   </Item>
   <Item Name="BundleMaker" Category="" ClassName="NCA.HL7Dumper" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="true" Schedule="">
+  </Item>
+  <Item Name="RoutingTest" Category="" ClassName="EnsLib.HL7.MsgRouter.RoutingEngine" PoolSize="1" Enabled="false" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+    <Setting Target="Host" Name="BusinessRuleName">INFORMATION.RoutingTestRoutingRule</Setting>
   </Item>
 </Production>
 ]]></Data>
@@ -167,7 +144,7 @@
 <Class name="NCA.HL7Dumper">
 <ClassType>persistent</ClassType>
 <Super>Ens.BusinessProcess</Super>
-<TimeChanged>66507,43080.8139178</TimeChanged>
+<TimeChanged>66512,31951.3747306</TimeChanged>
 <TimeCreated>66506,35135.2111567</TimeCreated>
 
 <Method name="OnRequest">
@@ -300,6 +277,9 @@
 	do pArr.SetAt(pRequest.GetValueAt("PID:13.1"), "phoneContent.value")
 	do pArr.SetAt(pRequest.GetValueAt("PID:13.4"), "emailContent.value")
 
+	// NHS Number Verification Status
+	do pArr.SetAt( pRequest.GetValueAt("PID:32"), "VerifStatus")
+
 	// Next of Kin
 	Set Cnt=pRequest.GetValueAt("NK1(*)")
 	For j=1:1:Cnt
@@ -422,7 +402,7 @@
 
 <Class name="NCA.Resources">
 <Super>%RegisteredObject</Super>
-<TimeChanged>66507,42268.7536388</TimeChanged>
+<TimeChanged>66512,34235.0580148</TimeChanged>
 <TimeCreated>66500,54749.3268328</TimeCreated>
 
 <UDLText name="T">
@@ -440,9 +420,10 @@
 	set tsc = $$$OK
 	Try {
 		set nhsNumber = pArr.GetAt("NhsNumberContent.value")
+		Set NhsNoVerif = pArr.GetAt("VerifStatus")
     	set LocalCode = pArr.GetAt("LocalCode")
 
-    	if nhsNumber '= "" {set patientID = nhsNumber}
+    	if (nhsNumber '= "") && (NhsNoVerif = "NSTS01") {set patientID = nhsNumber}
     	elseif LocalCode '= "" {set patientID = LocalCode}
 
     	// Create a bundle resource
@@ -456,9 +437,14 @@
   		While $LISTNEXT(pBundleList,ptr,ResourceMethod) {
 			do $ClassMethod("NCA.Resources", ResourceMethod, pArr, .resource)
 			Set resourceElement = ##class(%DynamicObject).%New()
+
+			// Resrouce ID and URL
 			set Guid = $System.Util.CreateGUID()
-    		set resourceElement.fullUrl = "https://www.northerncarealliance.nhs.uk/fhir-profiles/"_resource.resourceType_"/"_Guid
-			set resourceElement.id = Guid
+			if resource.resourceType = "Patient" {Set ID = patientID}
+			else { Set ID = Guid}
+
+    		set resourceElement.fullUrl = "https://www.northerncarealliance.nhs.uk/fhir-profiles/"_resource.resourceType_"/"_ID
+			set resourceElement.id = ID
 
 			// Resource entry
     		set resourceElement.resource = resource
@@ -506,7 +492,9 @@
 		// NHS Number
 		set identifierArray = ##class(%DynamicArray).%New()
     	set nhsNumber = pArr.GetAt("NhsNumberContent.value")
-		if nhsNumber '= ""
+		Set NhsNoVerif = pArr.GetAt("VerifStatus")
+
+		if (nhsNumber '= "") && (NhsNoVerif = "NSTS01")
 		{
 			set NhsNumberContent = ##class(%DynamicObject).%New()
 			set NhsNumberContent.system = "https://fhir.nhs.uk/Id/nhs-number"
@@ -797,10 +785,11 @@
 	set tsc=$$$OK
 	Try {
 		set nhsNumber = pArr.GetAt("NhsNumberContent.value")
+		Set NhsNoVerif = pArr.GetAt("VerifStatus")
     	set LocalCode = pArr.GetAt("LocalCode")
 
-    	if nhsNumber '= ""
-    	{
+    	if (nhsNumber '= "") && (NhsNoVerif = "NSTS01")
+		{
     	    set patientID = nhsNumber
     	}
     	elseif LocalCode '= ""
@@ -859,10 +848,11 @@
 	set tsc=$$$OK
 	Try {
 		set nhsNumber = pArr.GetAt("NhsNumberContent.value")
+		Set NhsNoVerif = pArr.GetAt("VerifStatus")
     	set LocalCode = pArr.GetAt("LocalCode")
 
-    	if nhsNumber '= ""
-    	{
+    	if (nhsNumber '= "") && (NhsNoVerif = "NSTS01")
+		{
     	    set patientID = nhsNumber
     	}
     	elseif LocalCode '= ""
@@ -1235,7 +1225,10 @@
 		set LocationCodeContent2 = ##class(%DynamicObject).%New()
 		set LocationCodeContent2.system = "https://fhir.nhs.uk/Id/ods-site-code"
 		set LocationCodeContent2.value = "########"
-		set LocationCodeContent2.assigner = ..AssignerBuilder("Organization/RW6orRM3")
+		if pArr.GetAt("LocalCodeAssigner") '= ""
+		{
+			set LocationCodeContent2.assigner = ..AssignerBuilder("Organization/"_pArr.GetAt("LocalCodeAssigner"))
+		}
 
 		do identifierArray.%Push(LocationCodeContent2)
 
@@ -1282,7 +1275,10 @@
 		set identifierCoding = ##class(%DynamicObject).%New()
 		set identifierCoding.system = "LocalEpisodeId"
 		set identifierCoding.value = pArr.GetAt("EpisodeOfCareValue")
-		set identifierCoding.assigner = ..AssignerBuilder("Organization/RW6orRM3")
+		if pArr.GetAt("LocalCodeAssigner") '= ""
+		{
+			set identifierCoding.assigner = ..AssignerBuilder("Organization/"_pArr.GetAt("LocalCodeAssigner"))
+		}
 
 		do identifierArray.%Push(identifierCoding)
 		set resource.identifier = identifierArray
@@ -1290,23 +1286,19 @@
 		set resource.status = "active" ;TBD
 
 		; TBD: EpisodeOfCare.type
+
+		Set nhsNumber = pArr.GetAt("NhsNumberContent.value")
+		Set NhsNoVerif = pArr.GetAt("VerifStatus")
+    	set LocalCode = pArr.GetAt("LocalCode")
 		
 		set PatientReference = ##class(%DynamicObject).%New()
-		if pArr.GetAt("NhsNumberContent.value") '= ""
-		{
-			set PatientReference.reference = "Patient/"_pArr.GetAt("NhsNumberContent.value")
-		}
-		elseif pArr.GetAt("LocalCode") '= ""
-		{
-			set PatientReference.reference = "Patient/"_pArr.GetAt("LocalCode")
-		}
+		if (nhsNumber '= "") && (NhsNoVerif = "NSTS01") {set PatientReference.reference = "Patient/"_nhsNumber}
+		elseif LocalCode '= "" {set PatientReference.reference = "Patient/"_LocalCode}
 		
 		set resource.patient = PatientReference
 
 		set tsc = ..SetPeriod("2022-11-01", "2022-11-10", .period)
 		set resource.period = period
-
-		;$$$TRACE("EpisodeOfCareResource= "_resource.%ToJSON())
 
 		set pEpisodeOfCareResource =  resource
 	}
@@ -1378,14 +1370,18 @@
 		set resource.priority = Priority
 
 		// Subject
+		set nhsNumber = pArr.GetAt("NhsNumberContent.value")
+		Set NhsNoVerif = pArr.GetAt("VerifStatus")
+    	set LocalCode = pArr.GetAt("LocalCode")
+
 		set Subject = ##class(%DynamicObject).%New()
-		if pArr.GetAt("NhsNumberContent.value") '= ""
+		if (nhsNumber '= "") && (NhsNoVerif = "NSTS01")
 		{
-			set Subject.reference = "Patient/"_pArr.GetAt("NhsNumberContent.value")
+			set Subject.reference = "https://www.northerncarealliance.nhs.uk/fhir-profiles/Patient/"_pArr.GetAt("NhsNumberContent.value")
 		}
-		elseif pArr.GetAt("LocalCode") '= ""
+		elseif LocalCode '= ""
 		{
-			set Subject.reference = "Patient/"_pArr.GetAt("LocalCode")
+			set Subject.reference = "https://www.northerncarealliance.nhs.uk/fhir-profiles/Patient/"_pArr.GetAt("LocalCode")
 		}
 		set resource.subject = Subject
 
@@ -1451,7 +1447,10 @@
 		set identifierArray = ##class(%DynamicArray).%New()
 		set identifierCoding = ##class(%DynamicObject).%New()
 		set identifierCoding.value = "########"
-		set identifierCoding.assigner = ..AssignerBuilder("Organization/RW6")
+		if pArr.GetAt("NhsNumberAssigner") '= ""
+		{
+			set identifierCoding.assigner = ..AssignerBuilder("Organization/"_pArr.GetAt("NhsNumberAssigner"))
+		}
 		do identifierArray.%Push(identifierCoding)
 		set resource.identifier = identifierArray
 
@@ -1595,7 +1594,7 @@
 </Class>
 
 
-<Document name="EnsExportNotes.EnsExportProduction_2023-02-03 10-57-02_191+0.PTD"><ProjectTextDocument name="EnsExportNotes.EnsExportProduction_2023-02-03 10-57-02_191+0" description="Export Notes for export EnsExportProduction_2023-02-03 10-57-02_191+0">
+<Document name="EnsExportNotes.EnsExportProduction_2023-02-07 09-40-08_482+0.PTD"><ProjectTextDocument name="EnsExportNotes.EnsExportProduction_2023-02-07 09-40-08_482+0" description="Export Notes for export EnsExportProduction_2023-02-07 09-40-08_482+0">
 <![CDATA[<Deployment>
 <Creation>
 <Machine>DESKTOP-0B5KC8A</Machine>
@@ -1603,19 +1602,18 @@
 <Namespace>USER</Namespace>
 <SourceProduction>INFORMATION.NewProduction</SourceProduction>
 <Username>Imtech</Username>
-<UTC>2023-02-03 10:57:59.815</UTC>
+<UTC>2023-02-07 09:41:00.210</UTC>
 </Creation>
 <Notes>
 </Notes>
 <Contents>
-<ExportProject>EnsExportProduction_2023-02-03 10-57-02_191+0</ExportProject>
-<Item num="1">INFORMATION.NewProduction.AlertRule.CLS</Item>
-<Item num="2">INFORMATION.NewProduction.CLS</Item>
-<Item num="3">NCA.ConceptMapsTranslate.CLS</Item>
-<Item num="4">NCA.GenderCode.LUT</Item>
-<Item num="5">NCA.HL7Dumper.CLS</Item>
-<Item num="6">NCA.HTTPOut.CLS</Item>
-<Item num="7">NCA.Resources.CLS</Item>
+<ExportProject>EnsExportProduction_2023-02-07 09-40-08_482+0</ExportProject>
+<Item num="1">INFORMATION.NewProduction.CLS</Item>
+<Item num="2">NCA.ConceptMapsTranslate.CLS</Item>
+<Item num="3">NCA.GenderCode.LUT</Item>
+<Item num="4">NCA.HL7Dumper.CLS</Item>
+<Item num="5">NCA.HTTPOut.CLS</Item>
+<Item num="6">NCA.Resources.CLS</Item>
 </Contents>
 <ProductionClassInExport>INFORMATION.NewProduction</ProductionClassInExport>
 </Deployment>
