@@ -1,0 +1,455 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="IRIS" version="26">
+<Project name="EnsExportProduction_2023-02-09 11-06-54_443+0" LastModified="2023-02-09 11:07:20.753715">
+  <ProjectDescription>Studio Project generated from Production 'FHIR.TransformationProduction' at 2023-02-09 11:06:54.443 UTC</ProjectDescription>
+  <Items>
+    <ProjectItem name="FHIR.TransformationProduction" type="CLS"></ProjectItem>
+    <ProjectItem name="NCA.FHIR.Operation.HTTPOut" type="CLS"></ProjectItem>
+    <ProjectItem name="NCA.FHIR.Process.HL7toFHIRTransform" type="CLS"></ProjectItem>
+    <ProjectItem name="NCA.Ethnicity.LUT" type="LUT"></ProjectItem>
+    <ProjectItem name="NCA.GenderCode.LUT" type="LUT"></ProjectItem>
+    <ProjectItem name="NCA.RelationShipCodes.LUT" type="LUT"></ProjectItem>
+    <ProjectItem name="NCA.TrustDetails.LUT" type="LUT"></ProjectItem>
+    <ProjectItem name="EnsExportNotes.EnsExportProduction_2023-02-09 11-06-54_443+0.PTD" type="PTD"></ProjectItem>
+  </Items>
+</Project>
+
+
+<Class name="FHIR.TransformationProduction">
+<Super>Ens.Production</Super>
+<TimeCreated>66512,50418.8782364</TimeCreated>
+
+<XData name="ProductionDefinition">
+<Data><![CDATA[
+<Production Name="FHIR.TransformationProduction" LogGeneralTraceEvents="false">
+  <Description></Description>
+  <ActorPoolSize>2</ActorPoolSize>
+  <Item Name="PASIn" Category="" ClassName="EnsLib.HL7.Service.HTTPService" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+    <Setting Target="Host" Name="MessageSchemaCategory">2.4</Setting>
+    <Setting Target="Host" Name="TargetConfigNames">HL7toFHIRTransform</Setting>
+  </Item>
+  <Item Name="HL7toFHIRTransform" Category="" ClassName="NCA.FHIR.Process.HL7toFHIRTransform" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="true" Schedule="">
+  </Item>
+  <Item Name="HttpOut" Category="" ClassName="NCA.FHIR.Operation.HTTPOut" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+    <Setting Target="Adapter" Name="URL">http://hapi.fhir.org/baseR4</Setting>
+  </Item>
+  <Item Name="Ens.Alert" Category="" ClassName="EnsLib.EMail.AlertOperation" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+  </Item>
+</Production>
+]]></Data>
+</XData>
+</Class>
+
+
+<Class name="NCA.FHIR.Operation.HTTPOut">
+<Super>Ens.BusinessOperation</Super>
+<TimeCreated>66442,51457.7148751</TimeCreated>
+
+<Parameter name="ADAPTER">
+<Default>EnsLib.HTTP.OutboundAdapter</Default>
+</Parameter>
+
+<Property name="Adapter">
+<Type>EnsLib.HTTP.OutboundAdapter</Type>
+</Property>
+
+<Parameter name="INVOCATION">
+<Default>Queue</Default>
+</Parameter>
+
+<Method name="SendFHIR">
+<FormalSpec>pMsgIn:Ens.StreamContainer,*pResponse:Ens.Response</FormalSpec>
+<Implementation><![CDATA[
+	set tsc=$$$OK
+	
+	TRY
+	{
+	
+	set strm=pMsgIn.Stream
+	
+	SET tHTTPReq=##class(%Net.HttpRequest).%New()	
+	DO tHTTPReq.SetHeader("Content-Type","application/json")
+
+	;SET ..Adapter.URL="http://hapi.fhir.org/baseR4"
+	//SET ..Adapter.URL="https://server.fire.ly"
+	SET tHTTPReq.EntityBody=strm	
+	
+	SET tsc=..Adapter.SendFormDataArray(.tHttpResponse, "POST", tHTTPReq)
+	
+	#DIM tHttpResponse As %Net.HttpResponse
+	
+	$$$TRACE("Status Code: "_ tHttpResponse.StatusCode)
+	IF tHttpResponse.StatusCode'=200 
+	{
+	
+		
+		set alert=##class(Ens.AlertRequest).%New()
+		set alertText="Error Code: "_tHttpResponse.StatusCode
+		set alertText=alertText_" There has been an error in sending the latest FHIR bundle to the Firely server"
+		set alert.AlertText=alertText
+		set alert.AlertDestination="Ens.Alert"
+		set t=..SendAlert(alert)
+		$$$ThrowStatus(tsc)
+		
+	}	
+	
+	set response=##class(NCA.HttpResponse).%New()
+
+	set response.StatusCode= tHttpResponse.StatusCode
+	set response.ResponseBody=tHttpResponse.Data.Read()
+	
+	
+	set pResponse=response
+	}
+	
+	CATCH EX
+	{
+		set tsc=EX.AsStatus()
+		
+	}	
+	
+	quit tsc
+]]></Implementation>
+</Method>
+
+<XData name="MessageMap">
+<Data><![CDATA[
+<MapItems>
+<MapItem MessageType="Ens.StreamContainer">
+<Method>SendFHIR</Method>
+</MapItem>
+</MapItems>
+]]></Data>
+</XData>
+</Class>
+
+
+<Class name="NCA.FHIR.Process.HL7toFHIRTransform">
+<ClassType>persistent</ClassType>
+<Super>Ens.BusinessProcess</Super>
+<TimeCreated>66442,61538.4607629</TimeCreated>
+
+<Method name="OnRequest">
+<FormalSpec>pRequest:EnsLib.HL7.Message,*pResponse:Ens.Response</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	
+	TRY
+	{
+	set tsc = $$$OK
+	$$$TRACE("START")
+	// Dump HL7 content into an array
+	set tsc=..HL7Extraction(pRequest,.pArr)
+	IF $$$ISERR(tsc) $$$ThrowStatus(tsc)
+	
+
+	// Haitem El Aaouani 01/02/2023: Extract Message type / trigger event to monitor bundles
+	Set TrigEvent = pRequest.GetValueAt("MSH:9.2")
+	$$$TRACE("TrigEvent: "_TrigEvent)
+
+	set BundleArray = ##class(%DynamicArray).%New()
+
+	// Demographic bundle
+	if TrigEvent = "A31" {
+		Set BundleResources = $LISTBUILD("GPPractitionerRoleResource", "PatientResource", "ConsentResource",
+									"OrganizationResource", "OrganizationResource", "PractitionerResource")
+	}
+	// Enconter bundle 
+	Elseif $LISTBUILD("A01", "A02", "A03") [ TrigEvent {
+		Set BundleResources = $LISTBUILD("PractitionerRoleResource", "PractitionerResource", "LocationResource",
+									"EncounterResource", "EpisodeOfCareResource")
+	}
+	Else {
+		set tsc= $$$ERROR(5001,"unmanaged message type")
+		$$$ThrowStatus(tsc)
+		
+	}
+
+	// Build the bundle and send to operation
+	do ##Class(NCA.FHIR.Utility.BundleCreator).BundleBuilder(pArr, BundleResources, .BundleResource) // Bundle
+	$$$TRACE("BundleResource.%ToJSON(): "_BundleResource.%ToJSON())
+	set strmCont=##class(Ens.StreamContainer).%New()
+	set strm = ##class(%Stream.GblChrCompress).%New()
+	set formatter = ##class(%JSON.Formatter).%New()
+	set Inputstring = BundleResource.%ToJSON()
+	do formatter.FormatToStream(Inputstring, .strm)
+	set strmCont.Stream=strm
+
+	Set tsc=..SendRequestSync("HttpOut",strmCont)
+
+	/*// Concept Map test
+	set tsc = ##class(NCA.Resources).ConceptMapParams(.StremToConceptMap) // ConsentRequest
+	Set tsc=..SendRequestSync("ConceptMaps", StremToConceptMap)*/
+	
+	}
+	CATCH EX
+	{
+		
+		set tsc=EX.AsStatus()
+		
+	}	
+
+	quit tsc
+]]></Implementation>
+</Method>
+
+<Method name="HL7Extraction">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>pRequest:EnsLib.HL7.Message,*pArr:%ArrayOfDataTypes</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set tsc=$$$OK
+	$$$TRACE("START2")
+	Set nhsNumber = ""
+	Set LocalCode =  ""
+	set pArr=##class(%ArrayOfDataTypes).%New()
+	Set relationshipLKUP = "NCA.RelationShipCodes"
+	Set genderLKUP = "NCA.GenderCode"
+	Set ethnicityLKUP = "NCA.Ethnicity"
+
+	// NHS Number / Local Code / OdsCode
+	Set Count=pRequest.GetValueAt("PID:3(*)")
+	For i=1:1:Count
+	{	
+		If (pRequest.GetValueAt("PID:3("_i_").5")="NHS")
+		   	{
+			   	Set nhsNumber=pRequest.GetValueAt("PID:3("_i_").1")
+			   	//Set nhsAssigner=pRequest.GetValueAt("PID:3("_i_").4")
+		   	}
+		If (pRequest.GetValueAt("PID:3("_i_").5")="DN")
+		   	{
+			   	Set LocalCode=pRequest.GetValueAt("PID:3("_i_").1")
+			   	Set CodeAssigner=pRequest.GetValueAt("PID:3("_i_").4")
+		   	}
+	}
+
+	if nhsNumber="" && LocalCode=""
+	{
+		quit $$$ERROR(5001,"The patient's NHS Number and Local code are missing within the Inbound HL7 message.")
+	}
+
+	do pArr.SetAt(nhsNumber, "NhsNumberContent.value")
+	//do pArr.SetAt(nhsAssigner, "NhsNumberAssigner")
+	do pArr.SetAt(LocalCode, "LocalCode")
+	do pArr.SetAt(CodeAssigner, "LocalCodeAssigner")
+	do pArr.SetAt(pRequest.GetValueAt("PID:5.5"), "prefixContent")
+	do pArr.SetAt(pRequest.GetValueAt("PID:5.1"), "nameContent.family")
+	do pArr.SetAt(pRequest.GetValueAt("PID:5.2"), "givenNameContent.given")
+
+	// Gender LookUp:
+	Set GenderCode = ##class(Ens.Util.FunctionSet).Lookup(genderLKUP, pRequest.GetValueAt("PID:8"), "$D", "$DE")
+	do pArr.SetAt(GenderCode, "resource.gender")
+
+	// Date of birth
+	do pArr.SetAt($ZDT($ZDATEH(pRequest.GetValueAt("PID:7.1"),5),3), "resource.birthDate")
+
+	 // Ethnicity
+	Set EthnicityCode = ##class(Ens.Util.FunctionSet).Lookup(ethnicityLKUP, pRequest.GetValueAt("PID:22.1"), "$D", "$DE")
+	do pArr.SetAt(EthnicityCode, "ethnicCategory.value")
+	$$$TRACE("EthnicityCode: "_EthnicityCode_"//"_pRequest.GetValueAt("PID:22.1"))
+
+	do pArr.SetAt(pRequest.GetValueAt("PID:17"), "religion.value") // Religion
+	do pArr.SetAt(pRequest.GetValueAt("PID:28"), "Nationality.value") // Nationality
+	
+    // BirthPlace
+    do pArr.SetAt(pRequest.GetValueAt("PID:23"), "birthPlaceValueAddress.text")
+
+	// Patient address
+	do pArr.SetAt(pRequest.GetValueAt("PID:11.1"), "addressLines1")
+	do pArr.SetAt(pRequest.GetValueAt("PID:11.2"), "addressLines2")
+	do pArr.SetAt(pRequest.GetValueAt("PID:11.3"), "addressCity")
+	do pArr.SetAt( pRequest.GetValueAt("PID:11.5"), "addressPostCode")
+
+	// Deceased patient
+	$$$TRACE("Deceased")
+	if pRequest.GetValueAt("PID:29") '= ""
+	{
+		set deceaseDay = $EXTRACT(pRequest.GetValueAt("PID:29"), 1, 8)
+		set deceaseTime = $EXTRACT(pRequest.GetValueAt("PID:29"), 9, 10)_":"_$EXTRACT(pRequest.GetValueAt("PID:29"), 11, 12)_":"
+		set deceaseTime = deceaseTime_$EXTRACT(pRequest.GetValueAt("PID:29"), 13, 17)_":"_$EXTRACT(pRequest.GetValueAt("PID:29"), 18, 19)
+
+		do pArr.SetAt($ZDT($ZDATEH(deceaseDay,5),3)_"T"_deceaseTime, "resource.deceasedDateTime")
+	}
+	
+	do pArr.SetAt(pRequest.GetValueAt("PID:11.1"), "addressLinesContent")
+	do pArr.SetAt(pRequest.GetValueAt("PID:11.3"), "addressContent.city")
+	do pArr.SetAt(pRequest.GetValueAt("PID:11.5"), "addressContent.postalCode")
+	do pArr.SetAt(pRequest.GetValueAt("PID:13.1"), "phoneContent.value")
+	do pArr.SetAt(pRequest.GetValueAt("PID:13.4"), "emailContent.value")
+
+	// NHS Number Verification Status
+	do pArr.SetAt( pRequest.GetValueAt("PID:32"), "VerifStatus")
+
+	// Next of Kin
+	$$$TRACE("NK1")
+	Set Cnt=pRequest.GetValueAt("NK1(*)")
+	For j=1:1:Cnt
+	{
+		Set RelationShipCode = ##class(Ens.Util.FunctionSet).Lookup(relationshipLKUP, pRequest.GetValueAt("NK1("_j_"):3.1"), "$D", "$DE")
+		do pArr.SetAt(RelationShipCode, "relationshipCodingCode.code"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):2.5"), "ContactprefixContent"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):2.2"), "ContactgivenNameContent.given"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):2.1"), "ContactnameContent.family"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):5"), "ContactphoneContent.value"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):6"), "ContactphoneBusinessContent.value"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):4.1"), "ContactAddressLinesContent"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):4.2"), "ContactAddressLinesOtherContent"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):4.3"), "ContactAddressLinesCityContent"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):4.4"), "ContactAddressLinesStateContent"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):4.5"), "ContactAddressContent.postalCode"_j)
+	}
+
+	// Practitioner - GP
+	do pArr.SetAt(pRequest.GetValueAt("PD1:4.10"), "PASLocal")
+	do pArr.SetAt(pRequest.GetValueAt("PD1:4.1"), "NationalCode")
+	do pArr.SetAt(pRequest.GetValueAt("PD1:4.2"), "GPFamilyName")
+	do pArr.SetAt(pRequest.GetValueAt("PD1:4.3"), "GPGivenName")
+	do pArr.SetAt(pRequest.GetValueAt("PD1:4.6"), "GPPrefix")
+	
+	//GP Surgery 
+	$$$TRACE("GP Surgery1")
+	do pArr.SetAt(pRequest.GetValueAt("PD1:3.3"),"GPPracticeCode")
+	$$$TRACE("GP Surgery2")
+	do pArr.SetAt(pRequest.GetValueAt("PD1:3.1"),"GPPracticeName")
+	
+	// Organization
+	$$$TRACE("Organization")
+	;do pArr.SetAt(pRequest.GetValueAt("PD1:3.3"), "odsOrganisationCode") //PD1:3.3 is for practitioner or Organization?
+	;do pArr.SetAt(pRequest.GetValueAt("PD1:3.1"), "OrganisationName")
+	
+	do pArr.SetAt(pRequest.GetValueAt("PID:3.4"), "odsOrganisationCode") //PD1:3.3 is for practitioner or Organization?
+	do pArr.SetAt(pRequest.GetValueAt("PID:3.1"), "OrganisationName")
+
+	// ServiceRequest
+	$$$TRACE("ServiceRequest")
+	do pArr.SetAt(pRequest.GetValueAt("RF1:2"), "SRstatus")
+	do pArr.SetAt(pRequest.GetValueAt("RF1:10"), "SRcategoryText")
+
+    // Location
+    $$$TRACE("Location")
+	do pArr.SetAt(pRequest.GetValueAt("PV1:3.1"), "LocationCode")
+	do pArr.SetAt(pRequest.GetValueAt("PV1:3.9"), "LocationType")
+	do pArr.SetAt(pRequest.GetValueAt("PV1:3.3"), "LocationName")
+
+	// PraciontionerRole
+	do pArr.SetAt(pRequest.GetValueAt("PV1:10"), "PractitionerRole.specialty") // Specialty
+
+    // Episode Of Care
+	do pArr.SetAt(pRequest.GetValueAt("EVN:2"), "EpisodeOfCareValue")
+	
+	// Encounter
+	do pArr.SetAt(pRequest.GetValueAt("EVN:19"), "EncounterIdentifier")
+
+	$$$TRACE("pArr Dumping: "_pArr.GetAt("NationalCode"))
+	
+	quit tsc
+]]></Implementation>
+</Method>
+
+<Method name="OnResponse">
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	$$$TRACE("Trace_OnResponse")
+	q $$$OK
+]]></Implementation>
+</Method>
+
+<Storage name="Default">
+<Type>%Storage.Persistent</Type>
+</Storage>
+</Class>
+
+
+<Document name="EnsExportNotes.EnsExportProduction_2023-02-09 11-06-54_443+0.PTD"><ProjectTextDocument name="EnsExportNotes.EnsExportProduction_2023-02-09 11-06-54_443+0" description="Export Notes for export EnsExportProduction_2023-02-09 11-06-54_443+0">
+<![CDATA[<Deployment>
+<Creation>
+<Machine>ANS-A1021</Machine>
+<Instance>IRISHEALTH</Instance>
+<Namespace>NCA</Namespace>
+<SourceProduction>FHIR.TransformationProduction</SourceProduction>
+<Username>HaitemElAaouaniAdmin</Username>
+<UTC>2023-02-09 11:07:20.751</UTC>
+</Creation>
+<Notes>
+</Notes>
+<Contents>
+<ExportProject>EnsExportProduction_2023-02-09 11-06-54_443+0</ExportProject>
+<Item num="1">FHIR.TransformationProduction.CLS</Item>
+<Item num="2">NCA.Ethnicity.LUT</Item>
+<Item num="3">NCA.FHIR.Operation.HTTPOut.CLS</Item>
+<Item num="4">NCA.FHIR.Process.HL7toFHIRTransform.CLS</Item>
+<Item num="5">NCA.GenderCode.LUT</Item>
+<Item num="6">NCA.RelationShipCodes.LUT</Item>
+<Item num="7">NCA.TrustDetails.LUT</Item>
+</Contents>
+<ProductionClassInExport>FHIR.TransformationProduction</ProductionClassInExport>
+</Deployment>
+
+]]></ProjectTextDocument>
+</Document>
+
+<Document name="NCA.Ethnicity.LUT">
+<lookupTable>
+<entry table="NCA.Ethnicity" key="AA">A</entry>
+<entry table="NCA.Ethnicity" key="BB">B</entry>
+<entry table="NCA.Ethnicity" key="CC">C</entry>
+<entry table="NCA.Ethnicity" key="DD">D</entry>
+<entry table="NCA.Ethnicity" key="EE">E</entry>
+<entry table="NCA.Ethnicity" key="FF">F</entry>
+<entry table="NCA.Ethnicity" key="GG">G</entry>
+<entry table="NCA.Ethnicity" key="HH">H</entry>
+<entry table="NCA.Ethnicity" key="JJ">J</entry>
+<entry table="NCA.Ethnicity" key="KK">K</entry>
+<entry table="NCA.Ethnicity" key="LL">L</entry>
+<entry table="NCA.Ethnicity" key="MM">M</entry>
+<entry table="NCA.Ethnicity" key="NN">N</entry>
+<entry table="NCA.Ethnicity" key="PP">P</entry>
+<entry table="NCA.Ethnicity" key="RR">R</entry>
+<entry table="NCA.Ethnicity" key="SS">S</entry>
+<entry table="NCA.Ethnicity" key="U">99</entry>
+<entry table="NCA.Ethnicity" key="ZZ">Z</entry>
+</lookupTable>
+</Document>
+
+<Document name="NCA.GenderCode.LUT">
+<lookupTable>
+<entry table="NCA.GenderCode" key="F">female</entry>
+<entry table="NCA.GenderCode" key="I">other</entry>
+<entry table="NCA.GenderCode" key="M">male</entry>
+<entry table="NCA.GenderCode" key="U">unknown</entry>
+</lookupTable>
+</Document>
+
+<Document name="NCA.RelationShipCodes.LUT">
+<lookupTable>
+<entry table="NCA.RelationShipCodes" key="AUNT">AUNT</entry>
+<entry table="NCA.RelationShipCodes" key="BROTHER">BRO</entry>
+<entry table="NCA.RelationShipCodes" key="DAUGHTER">DAUC</entry>
+<entry table="NCA.RelationShipCodes" key="FATHER">FTH</entry>
+<entry table="NCA.RelationShipCodes" key="FOSPAR(S)">FTHFOST</entry>
+<entry table="NCA.RelationShipCodes" key="FRIEND">FRND</entry>
+<entry table="NCA.RelationShipCodes" key="GCHILD">GRNDCHILD</entry>
+<entry table="NCA.RelationShipCodes" key="GMOTHER">GRMTH</entry>
+<entry table="NCA.RelationShipCodes" key="GUARDIAN">Guardian</entry>
+<entry table="NCA.RelationShipCodes" key="HUSBAND">HUSB</entry>
+<entry table="NCA.RelationShipCodes" key="MOTHER">MTH</entry>
+<entry table="NCA.RelationShipCodes" key="NEPHEW">NEPHEW</entry>
+<entry table="NCA.RelationShipCodes" key="NIECE">NIECE</entry>
+<entry table="NCA.RelationShipCodes" key="OTHER NR">U</entry>
+<entry table="NCA.RelationShipCodes" key="OTHER REL">U</entry>
+<entry table="NCA.RelationShipCodes" key="PARENT(S)">PRN</entry>
+<entry table="NCA.RelationShipCodes" key="PARTNER">DOMPART</entry>
+<entry table="NCA.RelationShipCodes" key="SISTER">SIS</entry>
+<entry table="NCA.RelationShipCodes" key="SON">SON</entry>
+<entry table="NCA.RelationShipCodes" key="SPOUSE">SPS</entry>
+<entry table="NCA.RelationShipCodes" key="UNCLE">UNCLE</entry>
+<entry table="NCA.RelationShipCodes" key="WIFE">WIFE</entry>
+</lookupTable>
+</Document>
+
+<Document name="NCA.TrustDetails.LUT">
+<lookupTable>
+<entry table="NCA.TrustDetails" key="RM3">SALFORD ROYAL/STOTT LANE/SALFORD/GREATER MANCHESTER/M6 8HD/01617897373</entry>
+<entry table="NCA.TrustDetails" key="RW6">NORTH MANCHESTER GENERAL HOSPITAL/DELAUNAYS ROAD, CRUMPSALL/MANCHESTER/M8 5RB/01616240420</entry>
+</lookupTable>
+</Document></Export>
