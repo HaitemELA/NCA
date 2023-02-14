@@ -1,4 +1,4 @@
-Class NCA.HttpResponse Extends Ens.Response
+Class NCA.FHIR.Process.HttpResponse Extends Ens.Response
 {
 
 Property StatusCode As %Integer;
