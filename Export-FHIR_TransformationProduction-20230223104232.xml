@@ -1,0 +1,1969 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="IRIS" version="26" zv="IRIS for Windows (x86-64) 2022.3 (Build 606U)" ts="2023-02-23 10:43:10">
+<Project name="EnsExportProduction_2023-02-23 10-42-32_805+0" LastModified="2023-02-23 10:43:10.0273778">
+  <ProjectDescription>Studio Project generated from Production 'FHIR.TransformationProduction' at 2023-02-23 10:42:32.805 UTC</ProjectDescription>
+  <Items>
+    <ProjectItem name="FHIR.TransformationProduction" type="CLS"></ProjectItem>
+    <ProjectItem name="NCA.FHIR.Operation.ConceptMap" type="CLS"></ProjectItem>
+    <ProjectItem name="NCA.FHIR.Operation.HTTPOut" type="CLS"></ProjectItem>
+    <ProjectItem name="NCA.FHIR.Operation.HttpResponse" type="CLS"></ProjectItem>
+    <ProjectItem name="NCA.FHIR.Process.HL7toFHIRTransform" type="CLS"></ProjectItem>
+    <ProjectItem name="EnsExportNotes.EnsExportProduction_2023-02-23 10-42-32_805+0.PTD" type="PTD"></ProjectItem>
+  </Items>
+</Project>
+
+
+<Class name="FHIR.TransformationProduction">
+<Super>Ens.Production</Super>
+<TimeChanged>66528,35127.5585206</TimeChanged>
+<TimeCreated>66512,50418.8782364</TimeCreated>
+
+<XData name="ProductionDefinition">
+<Data><![CDATA[
+<Production Name="FHIR.TransformationProduction" LogGeneralTraceEvents="false">
+  <Description></Description>
+  <ActorPoolSize>2</ActorPoolSize>
+  <Item Name="PASIn" Category="" ClassName="EnsLib.HL7.Service.HTTPService" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+    <Setting Target="Host" Name="MessageSchemaCategory">2.4</Setting>
+    <Setting Target="Host" Name="TargetConfigNames">HL7toFHIRTransform</Setting>
+  </Item>
+  <Item Name="HL7toFHIRTransform" Category="" ClassName="NCA.FHIR.Process.HL7toFHIRTransform" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="true" Schedule="">
+  </Item>
+  <Item Name="HttpOut" Category="" ClassName="NCA.FHIR.Operation.HTTPOut" PoolSize="1" Enabled="false" Foreground="false" Comment="" LogTraceEvents="true" Schedule="">
+    <Setting Target="Adapter" Name="URL">http://n-cdr-dvw-fhir1:8080/fhir</Setting>
+    <Setting Target="Adapter" Name="HTTPPort"></Setting>
+    <Setting Target="Adapter" Name="HTTPServer"></Setting>
+    <Setting Target="Host" Name="SendSuperSession">1</Setting>
+  </Item>
+  <Item Name="Ens.Alert" Category="" ClassName="EnsLib.EMail.AlertOperation" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+  </Item>
+  <Item Name="ToPublicHapiServer" Category="" ClassName="NCA.FHIR.Operation.HTTPOut" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="true" Schedule="">
+    <Setting Target="Adapter" Name="URL">http://hapi.fhir.org/baseR4</Setting>
+    <Setting Target="Adapter" Name="HTTPPort">443</Setting>
+    <Setting Target="Adapter" Name="HTTPServer"></Setting>
+    <Setting Target="Host" Name="SendSuperSession">1</Setting>
+  </Item>
+  <Item Name="ToPublicFirelyServer" Category="" ClassName="NCA.FHIR.Operation.HTTPOut" PoolSize="1" Enabled="false" Foreground="false" Comment="" LogTraceEvents="true" Schedule="">
+    <Setting Target="Adapter" Name="URL">http://server.fire.ly</Setting>
+    <Setting Target="Adapter" Name="HTTPPort"></Setting>
+    <Setting Target="Adapter" Name="HTTPServer"></Setting>
+  </Item>
+  <Item Name="TestConceptMap" Category="" ClassName="NCA.FHIR.Operation.ConceptMap" PoolSize="1" Enabled="false" Foreground="false" Comment="" LogTraceEvents="true" Schedule="">
+    <Setting Target="Adapter" Name="URL"></Setting>
+    <Setting Target="Adapter" Name="HTTPPort"></Setting>
+    <Setting Target="Adapter" Name="HTTPServer"></Setting>
+  </Item>
+</Production>
+]]></Data>
+</XData>
+</Class>
+
+
+<Class name="NCA.FHIR.Operation.ConceptMap">
+<Super>Ens.BusinessOperation</Super>
+<TimeChanged>66521,61087.1140978</TimeChanged>
+<TimeCreated>66521,36631.2001922</TimeCreated>
+
+<Parameter name="ADAPTER">
+<Default>EnsLib.HTTP.OutboundAdapter</Default>
+</Parameter>
+
+<Property name="Adapter">
+<Type>EnsLib.HTTP.OutboundAdapter</Type>
+</Property>
+
+<Parameter name="INVOCATION">
+<Default>Queue</Default>
+</Parameter>
+
+<Method name="Translate">
+<FormalSpec>pMsgIn:Ens.StreamContainer,*pResponse:Ens.Response</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+
+     Set tsc = $$$OK
+     ;$$$TRACE(pCode)
+     set strm=pMsgIn.Stream
+     /*
+     Set strm = ##class(%Stream.GblChrCompress).%New()
+     Set Req = ##class(%DynamicObject).%New()
+     Set Req.system = "http://hl7.org/fhir/address-use"
+     Set Req.code = "home"
+     Set Req.source = "http://hl7.org/fhir/ValueSet/address-use"
+     Set Req.target = "http://terminology.hl7.org/ValueSet/v3-AddressUse"
+     Set strm = Req.%ToJSON()
+     */
+
+
+     Set tHTTPReq=##class(%Net.HttpRequest).%New()
+     set pCode = "home"
+
+     DO tHTTPReq.SetHeader("Content-Type","application/json")
+
+     //Set URL = ..Adapter.HTTPServer_"/"_..Adapter.URL
+     ;Set URL = "http://terminz.azurewebsites.net/fhir/ConceptMap/$translate"
+     SET ..Adapter.URL = "http://hapi.fhir.org/baseR4/Patient/NHS9876543210"
+     
+     /*
+     do tHTTPReq.SetParam("system", "http://hl7.org/fhir/address-use")
+     do tHTTPReq.SetParam("code", pCode)
+     do tHTTPReq.SetParam("source","http://hl7.org/fhir/ValueSet/address-use")
+     do tHTTPReq.SetParam("target", "http://terminology.hl7.org/ValueSet/v3-AddressUse")
+     do tHTTPReq.SetParam("_format", "json")
+     */
+     
+     ;SET tHTTPReq.EntityBody=strm
+     ;$$$TRACE(Req.%ToJSON())
+     ;$$$TRACE(tHTTPReq.EntityBody)
+     SET tsc=..Adapter.SendFormDataArray(.tHttpResponse, "GET", tHTTPReq)
+
+     #DIM tHttpResponse As %Net.HttpResponse
+
+     ;$$$TRACE("Status Code: "_ tHttpResponse.StatusCode)
+	;$$$LOGINFO("Return HTTP RESPONSE : "_tHTTPReq.HttpResponseGet().Data.Read())
+	;$$$LOGINFO("Response Status Line:"_tHttpResponse.StatusLine)
+
+     set response=##class(NCA.FHIR.Operation.HttpResponse).%New()
+
+     ;set response.StatusCode= tHttpResponse.StatusCode
+     set response.ResponseBody=tHttpResponse.Data.Read()
+
+     $$$TRACE(tHttpResponse.Data.Read())
+
+     set pResponse=response
+
+     quit tsc
+]]></Implementation>
+</Method>
+
+<XData name="MessageMap">
+<Data><![CDATA[
+<MapItems>
+<MapItem MessageType="Ens.StreamContainer">
+<Method>Translate</Method>
+</MapItem>
+</MapItems>
+]]></Data>
+</XData>
+</Class>
+
+
+<Class name="NCA.FHIR.Operation.HTTPOut">
+<Super>Ens.BusinessOperation</Super>
+<TimeChanged>66527,57501.785134</TimeChanged>
+<TimeCreated>66442,51457.7148751</TimeCreated>
+
+<Parameter name="ADAPTER">
+<Default>EnsLib.HTTP.OutboundAdapter</Default>
+</Parameter>
+
+<Property name="Adapter">
+<Type>EnsLib.HTTP.OutboundAdapter</Type>
+</Property>
+
+<Parameter name="INVOCATION">
+<Default>Queue</Default>
+</Parameter>
+
+<Method name="SendFHIR">
+<FormalSpec>pMsgIn:Ens.StreamContainer,*pResponse:Ens.Response</FormalSpec>
+<Implementation><![CDATA[
+	set tsc=$$$OK
+	
+	TRY
+	{
+	
+	set strm=pMsgIn.Stream
+	
+	SET tHTTPReq=##class(%Net.HttpRequest).%New()	
+	DO tHTTPReq.SetHeader("Content-Type","application/fhir+json")
+
+	;SET ..Adapter.URL="http://hapi.fhir.org/baseR4"
+	//SET ..Adapter.URL="https://server.fire.ly"
+	//SET ..Adapter.URL="http://127.0.0.1"
+	SET tHTTPReq.EntityBody=strm
+	
+	SET tsc=..Adapter.SendFormDataArray(.tHttpResponse, "POST", tHTTPReq)
+	
+	#DIM tHttpResponse As %Net.HttpResponse
+	
+	$$$TRACE("Status Code: "_ tHttpResponse.StatusCode)
+	$$$LOGINFO("Return HTTP RESPONSE : "_tHTTPReq.HttpResponseGet().Data.Read())
+	$$$LOGINFO("Response Status Line:"_tHttpResponse.StatusLine)
+	IF tHttpResponse.StatusCode'=200
+	{
+	
+		
+		set alert=##class(Ens.AlertRequest).%New()
+		set alertText="Error Code: "_tHttpResponse.StatusCode
+		set alertText=alertText_" There has been an error in sending the latest FHIR bundle to the Firely server"
+		set alert.AlertText=alertText
+		set alert.AlertDestination="Ens.Alert"
+		set t=..SendAlert(alert)
+		$$$ThrowStatus(tsc)
+		
+	}	
+	
+	set response=##class(NCA.FHIR.Operation.HttpResponse).%New()
+
+	set response.StatusCode= tHttpResponse.StatusCode
+	set response.ResponseBody=tHttpResponse.Data.Read()
+
+	
+	
+	set pResponse=response
+	}
+	
+	CATCH EX
+	{
+		set tsc=EX.AsStatus()
+		
+	}	
+	
+	quit tsc
+]]></Implementation>
+</Method>
+
+<Method name="CheckPatient">
+<FormalSpec>pRequest:Ens.StringResponse,*pResponse:Ens.Response</FormalSpec>
+<Implementation><![CDATA[
+	Try
+	{
+		set tsc= $$$OK
+		set tHTTPReq=##class(%Net.HttpRequest).%New()
+		set tHTTPReq.Server = ..Adapter.URL
+		set tHTTPReq.Port = ..Adapter.HTTPPort
+		Do tHTTPReq.SetHeader("Accept","application/json")
+		$$$TRACE(..Adapter.URL_"/Patient?identifier="_pRequest.StringValue)
+
+		SET tsc=tHTTPReq.Get(..Adapter.URL_"/Patient?identifier="_pRequest.StringValue)
+
+		set pResponse=##class(NCA.FHIR.Operation.HttpResponse).%New()
+
+		set pResponse.StatusCode= tHTTPReq.HttpResponse.StatusCode
+		set pResponse.ResponseBody=tHTTPReq.HttpResponse.Data.Read()
+
+		$$$TRACE(pResponse.StatusCode)
+		$$$TRACE(pResponse.ResponseBody)
+
+		if (pResponse.StatusCode '= 200)
+		{		
+			set alert=##class(Ens.AlertRequest).%New()
+			set alertText="Error Code: "_pResponse.StatusCode
+			set alertText=alertText_" There has been an error in sending the latest FHIR bundle to the Firely server"
+			set alert.AlertText=alertText
+			set alert.AlertDestination="Ens.Alert"
+			set t=..SendAlert(alert)
+			$$$ThrowStatus(tsc)
+
+		}
+
+	}
+	Catch ex {
+		Set tSC=ex.AsStatus()
+	}
+
+	quit tsc
+]]></Implementation>
+</Method>
+
+<XData name="MessageMap">
+<Data><![CDATA[
+<MapItems>
+	<MapItem MessageType="Ens.StreamContainer">
+		<Method>SendFHIR</Method>
+	</MapItem>
+	<MapItem MessageType="Ens.StringResponse">
+		<Method>CheckPatient</Method>
+	</MapItem>
+</MapItems>
+]]></Data>
+</XData>
+</Class>
+
+
+<Class name="NCA.FHIR.Operation.HttpResponse">
+<Super>Ens.Response</Super>
+<TimeChanged>66527,36838.7995003</TimeChanged>
+<TimeCreated>66518,32125.3767843</TimeCreated>
+
+<Property name="StatusCode">
+<Type>%Integer</Type>
+</Property>
+
+<Property name="ResponseBody">
+<Type>%String</Type>
+<Parameter name="MAXLEN" value="100000"/>
+</Property>
+
+<Storage name="Default">
+<Type>%Storage.Persistent</Type>
+<DefaultData>HttpResponseDefaultData</DefaultData>
+<Data name="HttpResponseDefaultData">
+<Subscript>"HttpResponse"</Subscript>
+<Value name="1">
+<Value>StatusCode</Value>
+</Value>
+<Value name="2">
+<Value>ResponseBody</Value>
+</Value>
+</Data>
+</Storage>
+</Class>
+
+
+<Class name="NCA.FHIR.Process.HL7toFHIRTransform">
+<ClassType>persistent</ClassType>
+<Super>Ens.BusinessProcess</Super>
+<TimeChanged>66528,35121.6962089</TimeChanged>
+<TimeCreated>66442,61538.4607629</TimeCreated>
+
+<Method name="OnRequest">
+<FormalSpec>pRequest:EnsLib.HL7.Message,*pResponse:Ens.Response</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	TRY
+	{
+	set tsc = $$$OK
+	// Dump HL7 content into an array
+	set tsc=..HL7Extraction(pRequest,.pArr)
+	IF $$$ISERR(tsc) $$$ThrowStatus(tsc)
+
+	// Demographics bundle
+	if pArr.GetAt("TrigEvent") = "A31"
+	{
+		// Check server for any previous BRO/SCO Demographics resources
+		set patientCheck = ##class(%DynamicObject).%New()
+		do ..CDRpatientChecker(pArr, .patientCheck)
+		$$$TRACE("patientCheck.LinkType: "_patientCheck.LinkType)
+		Set BundleResources = $LISTBUILD("GPPractitionerRoleResource", "PatientResource/"_patientCheck.%ToJSON(), "ConsentResource",
+									"OrganizationResource/TRUST", "OrganizationResource/GP", "PractitionerResource")
+		// Compose Demographics
+		if patientCheck.LinkType = "replaces"
+		{
+			set patientCheck.resourceType = "Patient"
+			set BundleResources = BundleResources _ $LISTBUILD("ReplaceResource/"_patientCheck.%ToJSON())
+			
+		}
+		$$$LOGINFO(BundleResources)
+	}
+	// Encounter bundle
+	Elseif $LISTBUILD("A01", "A02", "A03") [ pArr.GetAt("TrigEvent")
+	{
+		Set BundleResources = $LISTBUILD("PractitionerRoleResource", "PractitionerResource", "LocationResource",
+									"EncounterResource", "EpisodeOfCareResource")
+	}
+	Else {
+		set tsc= $$$ERROR(5001,"unmanaged message type")
+		$$$ThrowStatus(tsc)
+	}
+
+	// Build the bundle and send to operation
+	;do ##Class(NCA.FHIR.Utility.BundleCreator).BundleBuilder(pArr, BundleResources, .BundleResource) // Bundle
+	do ..BundleBuilder(pArr, BundleResources, .BundleResource) // Bundle
+	set strmCont=##class(Ens.StreamContainer).%New()
+	set strm = ##class(%Stream.GblChrCompress).%New()
+	set formatter = ##class(%JSON.Formatter).%New()
+	set Inputstring = BundleResource.%ToJSON()
+	do formatter.FormatToStream(Inputstring, .strm)
+	set strmCont.Stream=strm
+
+	;Set tsc=..SendRequestSync("HttpOut",strmCont)
+	Set tsc=..SendRequestSync("ToPublicHapiServer",strmCont)
+	}
+	CATCH EX
+	{
+		set tsc=EX.AsStatus()
+	}	
+
+	quit tsc
+]]></Implementation>
+</Method>
+
+<UDLText name="T">
+<Content><![CDATA[
+// Check Local Code / Assigner
+
+]]></Content>
+</UDLText>
+
+<Method name="CDRpatientChecker">
+<FormalSpec>pArr:%ArrayOfDataTypes,*ReplacementData:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set tsc = $$$OK
+
+	set nhsNumber = pArr.GetAt("NhsNumberContent.value")
+	set NhsNoVerif = pArr.GetAt("VerifStatus")
+	set LocalCode = pArr.GetAt("LocalCode")
+	set Assigner = pArr.GetAt("LocalCodeAssigner")
+
+	// Case missing NHS Number OR unverified NHS number
+	if (nhsNumber = "") ;|| (NhsNoVerif = "N") 
+	{
+		Set LinkType = "none"
+	}
+	
+	// Case NHS Number existing and verfied
+	else
+	{
+		// LookUp on CDR if any existing patient: i.e if RW6+patient check for RM3+patient and vice-versa
+		set pRequest=##class(Ens.StringResponse).%New()
+
+		;if pArr.GetAt("LocalCodeAssigner") = "RM3" {set pRequest.StringValue="Patient/RW6"_LocalCode}
+		;elseif pArr.GetAt("LocalCodeAssigner") = "RW6" {set pRequest.StringValue="Patient/RM3"_LocalCode}
+		;else {quit $$$ERROR(5001,"Unknown local code assigner")}
+
+		set pRequest.StringValue="NHS"_nhsNumber
+
+		Set tsc=..SendRequestSync("ToPublicHapiServer",pRequest, .pResponse) // HTTP request to get Patient resource from CDR, if any...
+
+		set RespObj = ##class(%DynamicAbstractObject).%FromJSON(pResponse.ResponseBody)
+
+		// case patient resource not existing in CDR
+		if pResponse.StatusCode = 200 && RespObj.total=0
+		{
+			;$$$LOGINFO(RespObj.issue.valude.diagnostics)
+			set LinkType = "none"
+		}
+		elseif (pResponse.StatusCode = 200) &&(RespObj.total = 1)
+		{
+			if $MATCH(RespObj.entry.%Get(0).resource.id, Assigner_LocalCode) = 1
+			{
+				$$$TRACE("case1: RespObj.entry.%Get(0).id : "_RespObj.entry.%Get(0).resource.id_"//Assigner_LocalCode : "_Assigner_LocalCode)
+				Set LinkType = "none"
+				Set PatientTobereplaced = "none"
+				Set ReplacingPatient = "none"
+			}
+			elseif $MATCH(RespObj.entry.%Get(0).resource.id, Assigner_LocalCode) = 0
+			{
+				$$$TRACE("case2: RespObj.entry.%Get(0).id : "_RespObj.entry.%Get(0).resource.id_"//Assigner_LocalCode : "_Assigner_LocalCode)
+				Set LinkType = "replaces"
+				Set PatientTobereplaced = RespObj.entry.%Get(0).resource.id
+				Set ReplacingPatient = Assigner_LocalCode
+			}	
+		}
+	
+		elseif pResponse.StatusCode = 200 && RespObj.total > 1// case patient resource exists in CDR
+		{
+			;Set CDRlocalCode = RespObj.identifier.%Get(1).value
+			Set LinkType = "replaces"
+			// check if the site is the same
+		}
+	}
+	
+	$$$LOGINFO("RespObj.total_LinkType: "_RespObj.total_"/"_LinkType)
+
+	// output a Dynamic Array
+	set ReplacementData = ##class(%DynamicObject).%New()
+	set ReplacementData.LinkType = LinkType
+
+	if LinkType = "replaces" {
+		set ReplacementData.PatientTobereplaced = PatientTobereplaced
+		set ReplacementData.ReplacingPatient = ReplacingPatient
+		
+		}
+
+	$$$LOGINFO(ReplacementData.%ToJSON())
+
+	quit tsc
+]]></Implementation>
+</Method>
+
+<Method name="HL7Extraction">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>pRequest:EnsLib.HL7.Message,*pArr:%ArrayOfDataTypes</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set tsc=$$$OK
+	Set nhsNumber = ""
+	Set LocalCode =  ""
+	set pArr=##class(%ArrayOfDataTypes).%New()
+	Set relationshipLKUP = "NCA.RelationShipCodes"
+	Set genderLKUP = "NCA.GenderCode"
+	Set ethnicityLKUP = "NCA.Ethnicity"
+
+	// Trigger Event
+	do pArr.SetAt(pRequest.GetValueAt("MSH:9.2"), "TrigEvent")
+
+	// NHS Number / Local Code / OdsCode
+	Set Count=pRequest.GetValueAt("PID:3(*)")
+	For i=1:1:Count
+	{	
+		If (pRequest.GetValueAt("PID:3("_i_").5")="NHS")
+		   	{
+			   	Set nhsNumber=pRequest.GetValueAt("PID:3("_i_").1")
+			   	//Set nhsAssigner=pRequest.GetValueAt("PID:3("_i_").4")
+		   	}
+		If (pRequest.GetValueAt("PID:3("_i_").5")="DN")
+		   	{
+			   	Set LocalCode=pRequest.GetValueAt("PID:3("_i_").1")
+			   	Set CodeAssigner=pRequest.GetValueAt("PID:3("_i_").4")
+		   	}
+	}
+
+	if nhsNumber="" && LocalCode=""
+	{
+		quit $$$ERROR(5001,"The patient's NHS Number and Local code are missing within the Inbound HL7 message.")
+	}
+
+	do pArr.SetAt(nhsNumber, "NhsNumberContent.value")
+	//do pArr.SetAt(nhsAssigner, "NhsNumberAssigner")
+	do pArr.SetAt(LocalCode, "LocalCode")
+	do pArr.SetAt(CodeAssigner, "LocalCodeAssigner")
+	do pArr.SetAt(pRequest.GetValueAt("PID:5.5"), "prefixContent")
+	do pArr.SetAt(pRequest.GetValueAt("PID:5.1"), "nameContent.family")
+	do pArr.SetAt(pRequest.GetValueAt("PID:5.2"), "givenNameContent.given")
+
+	// Gender LookUp:
+	Set GenderCode = ##class(Ens.Util.FunctionSet).Lookup(genderLKUP, pRequest.GetValueAt("PID:8"), "$D", "$DE")
+	do pArr.SetAt(GenderCode, "resource.gender")
+
+	// Date of birth
+	do pArr.SetAt($ZDT($ZDATEH(pRequest.GetValueAt("PID:7.1"),5),3), "resource.birthDate")
+
+	 // Ethnicity
+	Set EthnicityCode = ##class(Ens.Util.FunctionSet).Lookup(ethnicityLKUP, pRequest.GetValueAt("PID:22.1"), "$D", "$DE")
+	do pArr.SetAt(EthnicityCode, "ethnicCategory.value")
+
+	do pArr.SetAt(pRequest.GetValueAt("PID:17.1"), "religion.value") // Religion
+	do pArr.SetAt(pRequest.GetValueAt("PID:28"), "Nationality.value") // Nationality
+	
+    // BirthPlace
+    do pArr.SetAt(pRequest.GetValueAt("PID:23"), "birthPlaceValueAddress.text")
+
+	// Patient address
+	do pArr.SetAt(pRequest.GetValueAt("PID:11.1"), "addressLines1")
+	do pArr.SetAt(pRequest.GetValueAt("PID:11.2"), "addressLines2")
+	do pArr.SetAt(pRequest.GetValueAt("PID:11.3"), "addressCity")
+	do pArr.SetAt( pRequest.GetValueAt("PID:11.5"), "addressPostCode")
+
+	// Deceased patient
+	if pRequest.GetValueAt("PID:29") '= ""
+	{
+		set deceaseDay = $EXTRACT(pRequest.GetValueAt("PID:29"), 1, 8)
+		set deceaseTime = $EXTRACT(pRequest.GetValueAt("PID:29"), 9, 10)_":"_$EXTRACT(pRequest.GetValueAt("PID:29"), 11, 12)_":"
+		set deceaseTime = deceaseTime_$EXTRACT(pRequest.GetValueAt("PID:29"), 13, 17)_":"_$EXTRACT(pRequest.GetValueAt("PID:29"), 18, 19)
+
+		do pArr.SetAt($ZDT($ZDATEH(deceaseDay,5),3)_"T"_deceaseTime, "resource.deceasedDateTime")
+	}
+	
+	do pArr.SetAt(pRequest.GetValueAt("PID:11.1"), "addressLinesContent")
+	do pArr.SetAt(pRequest.GetValueAt("PID:11.3"), "addressContent.city")
+	do pArr.SetAt(pRequest.GetValueAt("PID:11.5"), "addressContent.postalCode")
+	do pArr.SetAt(pRequest.GetValueAt("PID:13.1"), "phoneContent.value")
+	do pArr.SetAt(pRequest.GetValueAt("PID:13.4"), "emailContent.value")
+
+	// NHS Number Verification Status
+	do pArr.SetAt( pRequest.GetValueAt("PID:32"), "VerifStatus")
+
+	// Next of Kin
+	Set Cnt=pRequest.GetValueAt("NK1(*)")
+	For j=1:1:Cnt
+	{
+		Set RelationShipCode = ##class(Ens.Util.FunctionSet).Lookup(relationshipLKUP, pRequest.GetValueAt("NK1("_j_"):3.1"), "$D", "$DE")
+		do pArr.SetAt(RelationShipCode, "relationshipCodingCode.code"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):2.5"), "ContactprefixContent"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):2.2"), "ContactgivenNameContent.given"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):2.1"), "ContactnameContent.family"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):5"), "ContactphoneContent.value"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):6"), "ContactphoneBusinessContent.value"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):4.1"), "ContactAddressLinesContent"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):4.2"), "ContactAddressLinesOtherContent"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):4.3"), "ContactAddressLinesCityContent"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):4.4"), "ContactAddressLinesStateContent"_j)
+		do pArr.SetAt(pRequest.GetValueAt("NK1("_j_"):4.5"), "ContactAddressContent.postalCode"_j)
+	}
+
+	// Practitioner - GP
+	do pArr.SetAt(pRequest.GetValueAt("PD1:4.10"), "PASLocal")
+	do pArr.SetAt(pRequest.GetValueAt("PD1:4.1"), "NationalCode")
+	do pArr.SetAt(pRequest.GetValueAt("PD1:4.2"), "GPFamilyName")
+	do pArr.SetAt(pRequest.GetValueAt("PD1:4.3"), "GPGivenName")
+	do pArr.SetAt(pRequest.GetValueAt("PD1:4.6"), "GPPrefix")
+	
+	//GP Surgery 
+	do pArr.SetAt(pRequest.GetValueAt("PD1:3.3"),"GPPracticeCode")
+	do pArr.SetAt(pRequest.GetValueAt("PD1:3.1"),"GPPracticeName")
+	
+	// Organization
+	do pArr.SetAt(pRequest.GetValueAt("PD1:3.3"), "odsOrganisationCode") //PD1:3.3 is for practitioner or Organization?
+	do pArr.SetAt(pRequest.GetValueAt("PD1:3.1"), "OrganisationName")
+	
+	;do pArr.SetAt(pRequest.GetValueAt("PID:3.4"), "odsOrganisationCode") //PD1:3.3 is for practitioner or Organization?
+	;do pArr.SetAt(pRequest.GetValueAt("PID:3.1"), "OrganisationName")
+
+	// ServiceRequest
+	do pArr.SetAt(pRequest.GetValueAt("RF1:2"), "SRstatus")
+	do pArr.SetAt(pRequest.GetValueAt("RF1:10"), "SRcategoryText")
+
+    // Location
+	do pArr.SetAt(pRequest.GetValueAt("PV1:3.1"), "LocationCode")
+	do pArr.SetAt(pRequest.GetValueAt("PV1:3.9"), "LocationType")
+	do pArr.SetAt(pRequest.GetValueAt("PV1:3.3"), "LocationName")
+
+	// PraciontionerRole
+	do pArr.SetAt(pRequest.GetValueAt("PV1:10"), "PractitionerRole.specialty") // Specialty
+
+    // Episode Of Care
+	do pArr.SetAt(pRequest.GetValueAt("EVN:2"), "EpisodeOfCareValue")
+	
+	// Encounter
+	do pArr.SetAt(pRequest.GetValueAt("EVN:19"), "EncounterIdentifier")
+	
+	quit tsc
+]]></Implementation>
+</Method>
+
+<Method name="BundleBuilder">
+<FormalSpec>pArr:Ens.Request,pBundleList:%String,*bundle:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set tsc = $$$OK
+	Try {
+		;set nhsNumber = pArr.GetAt("NhsNumberContent.value")
+		;Set NhsNoVerif = pArr.GetAt("VerifStatus")
+    	;set LocalCode = pArr.GetAt("LocalCode")
+
+    	;if (nhsNumber '= "") && (NhsNoVerif = "NSTS01") {set patientID = nhsNumber}
+    	;elseif LocalCode '= "" {set patientID = LocalCode}
+
+    	// Create a bundle resource
+		set bundle = ##class(%DynamicObject).%New()
+    	set bundle.resourceType = "Bundle"
+    	set bundle.type = "transaction"
+
+		// Loop over the methods list to build the resources of the bundle
+		set entryArray = ##class(%DynamicArray).%New()
+  		Set ptr=0
+  		While $LISTNEXT(pBundleList,ptr,ResourceMethod) {
+			$$$TRACE("ResourceMethod: "_ResourceMethod)
+			Set resource = ##class(%DynamicObject).%New()
+			
+			// Check if params are appended to the method (mainly to dissociate of Trust and GPs Organisations )
+			if $Find(ResourceMethod, "/") '= 0
+			{
+				Set MethodnParams = $LISTFROMSTRING(ResourceMethod,"/")
+				set ResourceMethod = $LIST(MethodnParams,1)
+				do $ClassMethod(..%ClassName(1), $LIST(MethodnParams,1), pArr, $LIST(MethodnParams,2), .resource)
+				$$$LOGINFO("resource: "_resource.resourceType_" created by if")
+
+			}
+			else {
+				do $ClassMethod(..%ClassName(1), ResourceMethod, pArr, .resource)
+				$$$LOGINFO("resource: "_resource.resourceType_" created by else")
+
+			}
+			
+			Set resourceElement = ##class(%DynamicObject).%New()
+
+			// Resrouce ID and URL
+			set Guid = $System.Util.CreateGUID()			
+			if $LISTBUILD("Patient", "Organization", "Practitioner") [ resource.resourceType
+			{
+				Set ID = resource.identifier.%Get(0).value
+				$$$TRACE("ResourceMethod: "_resource.resourceType_" "_ID)
+			}
+			else { Set ID = Guid}
+			
+    		// Special referencing case - GPPractitionerRole:
+    		if resource.resourceType = "PractitionerRole"
+    		{
+	    		set GPPractRoleGuid = ID
+    		}
+			// insert Practitioner role code to Patient resource (and condition to avoid additional patient resource for link.type)
+    		if (resource.resourceType = "Patient") && ($LIST(MethodnParams,1) '= "ReplaceResource")
+    		{
+	    		set resource.generalPractitioner.gpContent.reference = "PractitionerRole/"_GPPractRoleGuid
+    		}
+			
+			// ID and FullUrl
+    		set resourceElement.fullUrl = "https://www.northerncarealliance.nhs.uk/fhir-profiles/"_resource.resourceType_"/"_ID
+			set resourceElement.id = ID
+			
+    		set resourceElement.resource = resource
+			// Request resource
+			set requestContent = ##class(%DynamicObject).%New()
+
+			// ReplaceResource method: Patch / other methods: PUT
+			$$$TRACE(ResourceMethod)
+			if ResourceMethod = "ReplaceResource"
+			{
+				$$$TRACE("DOING PATCH")
+				set patientCheck = $LIST(MethodnParams,2)
+				set patientCheckObj= ##class(%DynamicAbstractObject).%FromJSON(patientCheck)
+
+				$$$TRACE(patientCheckObj.resourceType)
+				$$$TRACE(patientCheckObj.patient)
+
+				set requestContent.method = "PATCH"
+				set requestContent.url = patientCheckObj.resourceType_"/"_patientCheckObj.PatientTobereplaced
+				$$$TRACE("requestContent: "_requestContent.method_"/"_requestContent.url)
+
+			}
+			else
+			{
+				set requestContent.method = "PUT"
+				set requestContent.url = resource.resourceType_"/"_ID
+			}
+
+			set resourceElement.request = requestContent
+			$$$LOGINFO(resourceElement)
+
+    		do entryArray.%Push(resourceElement)
+			$$$LOGINFO(entryArray.%ToJSON())
+			$$$TRACE("FINISH LOOP")
+  		}
+
+		// Bundle entry
+    	set bundle.entry = entryArray
+	
+	}
+	Catch ex {
+		Set tsc=ex.AsStatus()
+		do ex.Log()
+	}
+	Quit tsc
+]]></Implementation>
+</Method>
+
+<Method name="ReplaceResource">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>pArr:%ArrayOfDataTypes,patientCheck:%DynamicObject,*pReplaceResource:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set tsc = $$$OK
+	Try {
+		
+		// read the patient check process outcome
+		set patientCheckObj= ##class(%DynamicAbstractObject).%FromJSON(patientCheck)
+
+		// Create a new resource
+		set resource = ##class(%DynamicObject).%New()
+		set resource.resourceType = "Parameters"
+		
+		// Link.other
+		set ParamaterArray = ##class(%DynamicArray).%New()
+		set ParameterOp1 = ##class(%DynamicObject).%New()
+		set ParameterOp1.name = "operation"
+		set partArray1 = ##class(%DynamicArray).%New()
+		set partArrayContent11 = ##class(%DynamicObject).%New()
+		set partArrayContent11.name = "type"
+		set partArrayContent11.valueCode = "add"
+		set partArrayContent12 = ##class(%DynamicObject).%New()
+		set partArrayContent12.name = "path"
+		set partArrayContent12.valueString = patientCheckObj.resourceType_".link[0].other.reference"
+		set partArrayContent13 = ##class(%DynamicObject).%New()
+		set partArrayContent13.name = "value"
+		set partArrayContent13.valueString = patientCheckObj.resourceType_"/"_patientCheckObj.ReplacingPatient
+
+		do partArray1.%Push(partArrayContent11)
+		do partArray1.%Push(partArrayContent12)
+		do partArray1.%Push(partArrayContent13)
+
+		set ParameterOp1.part = partArray1
+
+		do ParamaterArray.%Push(ParameterOp1)
+		
+		//link.type
+
+		set ParameterOp2 = ##class(%DynamicObject).%New()
+		set ParameterOp2.name = "operation"
+		set partArray2 = ##class(%DynamicArray).%New()
+		set partArrayContent21 = ##class(%DynamicObject).%New()
+		set partArrayContent21.name = "type"
+		set partArrayContent21.valueCode = "add"
+		set partArrayContent22 = ##class(%DynamicObject).%New()
+		set partArrayContent22.name = "path"
+		set partArrayContent22.valueString = patientCheckObj.resourceType_".link[0].type"
+		set partArrayContent23 = ##class(%DynamicObject).%New()
+		set partArrayContent23.name = "value"
+		set partArrayContent23.valueCode = "replaced-by"
+
+		do partArray2.%Push(partArrayContent21)
+		do partArray2.%Push(partArrayContent22)
+		do partArray2.%Push(partArrayContent23)
+
+		set ParameterOp2.part = partArray2
+		
+		do ParamaterArray.%Push(ParameterOp2)
+
+		
+		set resource.parameter = ParamaterArray
+
+		set pReplaceResource = resource
+
+		$$$LOGINFO("pReplaceResource: *** "_pReplaceResource.%ToJSON())
+
+
+		/*
+	set patientCheckObj= ##class(%DynamicAbstractObject).%FromJSON(patientCheck)
+
+		// Create a new resource
+		set resource = ##class(%DynamicObject).%New()
+		set resource.resourceType = patientCheckObj.resourceType
+		
+		set identifierArray = ##class(%DynamicArray).%New()
+
+		//ODS-Local: skip if the inbound HL7 doesn't have it
+    	set LocalCode = pArr.GetAt("LocalCode")
+
+		set LocalContent = ##class(%DynamicObject).%New()
+		set LocalContent.system = "ODS-Local"
+		set LocalContent.value = patientCheckObj.patient
+		if pArr.GetAt("LocalCodeAssigner") '= ""
+		{
+			set LocalContent.assigner = ..AssignerBuilder("Organization/"_pArr.GetAt("LocalCodeAssigner"))
+		}
+		do identifierArray.%Push(LocalContent)
+
+		set resource.identifier = identifierArray
+
+		set LinkContentArray  = ##class(%DynamicArray).%New()
+		set linkContent = ##class(%DynamicObject).%New()
+		set linkContent.type = "replaced-by"
+		set LinkContentPush = linkContent
+		do LinkContentArray.%Push(LinkContentPush)
+		set resource.link = LinkContentArray
+		set pReplaceResource = resource
+		$$$LOGINFO("pReplaceResource: *** "_pReplaceResource.%ToJSON())
+
+		*/
+
+	}
+	Catch ex {
+		Set tSC=ex.AsStatus()
+	}
+
+	quit tsc
+]]></Implementation>
+</Method>
+
+<UDLText name="T">
+<Content><![CDATA[
+// Patient Resource
+
+]]></Content>
+</UDLText>
+
+<Method name="PatientResource">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>pArr:%ArrayOfDataTypes,patientCheck:%DynamicObject,*pPatientResource:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set tsc = $$$OK
+	Try {
+		
+		// Create a new resource
+		set resource = ##class(%DynamicObject).%New()
+
+		// Create a "Resource Type" and add it to the resource
+		set resource.resourceType = "Patient"
+
+		// NHS Number
+		set nhsNumber = ""
+		set LocalCode = ""
+
+		set identifierArray = ##class(%DynamicArray).%New()
+		if pArr.GetAt("NhsNumberContent.value") '= ""
+		{
+			set nhsNumber = pArr.GetAt("NhsNumberContent.value")
+			Set NhsNoVerif = pArr.GetAt("VerifStatus")
+		}
+
+		//ODS-Local: skip if the inbound HL7 doesn't have it
+    	set LocalCode = pArr.GetAt("LocalCode")
+		if LocalCode '= ""
+		{
+			set LocalContent = ##class(%DynamicObject).%New()
+			set LocalContent.system = "ODS-Local"
+			set LocalContent.value = pArr.GetAt("LocalCodeAssigner")_LocalCode
+			if pArr.GetAt("LocalCodeAssigner") '= ""
+			{
+				set LocalContent.assigner = ..AssignerBuilder("Organization/"_pArr.GetAt("LocalCodeAssigner"))
+			}
+			do identifierArray.%Push(LocalContent)
+		}
+
+		if (nhsNumber '= "") ;&& (NhsNoVerif = "NSTS01")  ******Pending the final code 0/1 OR N/Y
+		{
+			set NhsNumberContent = ##class(%DynamicObject).%New()
+			set NhsNumberContent.system = "https://fhir.nhs.uk/Id/nhs-number"
+			set NhsNumberContent.value = "NHS"_nhsNumber
+			do identifierArray.%Push(NhsNumberContent)
+		}
+
+		// push both identifiers: NHS Number + Local Code
+		set resource.identifier = identifierArray
+
+		// Name
+		set nameArray = ##class(%DynamicArray).%New()
+		set nameContent = ##class(%DynamicObject).%New()
+		set nameContent.use = "official"
+
+		Set prefixArray = ##class(%DynamicArray).%New() // Prefix: create a special object for prefix as it comes within an array
+    	do prefixArray.%Push(pArr.GetAt("prefixContent"))
+		set nameContent.prefix = prefixArray
+
+		set nameContent.family = pArr.GetAt("nameContent.family")
+
+		Set givenNameContent = ##class(%DynamicArray).%New() // Prefix: create a special object for prefix as it comes within an array
+    	do givenNameContent.%Push(pArr.GetAt("givenNameContent.given"))
+		set nameContent.given = givenNameContent
+
+		do nameArray.%Push(nameContent)
+		set resource.name = nameArray
+
+		// If old name exists, then apply the same process
+	// 
+		// Gender
+		set resource.gender = pArr.GetAt("resource.gender")
+
+		// BirthDate
+		set resource.birthDate = pArr.GetAt("resource.birthDate")
+
+		//Deceased
+		if pArr.GetAt("resource.deceasedDateTime") '= ""
+		{
+			set resource.deceasedDateTime = pArr.GetAt("resource.deceasedDateTime")
+		}
+
+		//maritalStatus
+		Set maritalStatus = ##class(%DynamicObject).%New()
+
+		set tsc = ..CodeableConcept("http://terminology.hl7.org/CodeSystem/v3-MaritalStatus", "M", "Married", .maritalSt, .DynObject)
+		set resource.maritalStatus = maritalSt
+
+		// Address
+		set addressArray = ##class(%DynamicArray).%New()
+		set addressContent = ##class(%DynamicObject).%New()
+
+		set addressLinesArray = ##class(%DynamicArray).%New() // for address lines
+		do addressLinesArray.%Push(pArr.GetAt("addressLines1"))
+    	if pArr.GetAt("addressLines1") '= ""
+    	{
+    	    do addressLinesArray.%Push(pArr.GetAt("addressLines2"))
+    	}
+    	do addressLinesArray.%Push(pArr.GetAt("addressCity"))
+		set addressContent.line = addressLinesArray
+		set addressContent.postalCode = pArr.GetAt("addressPostCode")
+		do addressArray.%Push(addressContent)
+
+		set resource.address = addressArray
+
+		//telecom
+		set telecomArray = ##class(%DynamicArray).%New()
+		set phoneContent = ##class(%DynamicObject).%New()
+
+		if pArr.GetAt("phoneContent.value") '= ""
+		{
+			set phoneContent.system = "phone"
+			set phoneContent.value = pArr.GetAt("phoneContent.value")
+			set phoneContent.use = "home"
+			do telecomArray.%Push(phoneContent)
+		}
+
+		if pArr.GetAt("emailContent.value") '= ""
+		{
+			set emailContent = ##class(%DynamicObject).%New()
+			set emailContent.system = "email"
+			set emailContent.value = pArr.GetAt("emailContent.value")
+			set emailContent.use = "work"
+			do telecomArray.%Push(emailContent)
+		}
+
+		set resource.telecom = telecomArray
+
+		// Contact
+		set ContactContentArray  = ##class(%DynamicArray).%New()
+
+		set j=1
+		while pArr.GetAt("relationshipCodingCode.code"_j) '= ""
+		{
+			set ContactContent  = ##class(%DynamicObject).%New()
+			set CodeArray = ##class(%DynamicArray).%New()
+			set relationshipArray = ##class(%DynamicArray).%New()
+			set relationshipCoding = ##class(%DynamicObject).%New()
+			set relationshipCodingCode = ##class(%DynamicObject).%New()
+
+			set relationshipCodingCode.code = pArr.GetAt("relationshipCodingCode.code"_j)
+			set relationshipCodingCode.system = "http://terminology.hl7.org/CodeSystem/v3-RoleCode" // To double check
+			do CodeArray.%Push(relationshipCodingCode)
+			set relationshipCoding.coding = CodeArray
+			do relationshipArray.%Push(relationshipCoding)
+			set ContactContent.relationship = relationshipArray
+	
+    	    set ContactnameContent = ##class(%DynamicObject).%New()
+			Set ContactprefixArray = ##class(%DynamicArray).%New() // Prefix: create a special object for prefix as it comes within an array
+			do ContactprefixArray.%Push(pArr.GetAt("ContactprefixContent"_j))
+			set ContactnameContent.prefix = ContactprefixArray
+			set ContactnameContent.given = pArr.GetAt("ContactgivenNameContent.given"_j)
+			set ContactnameContent.family = pArr.GetAt("ContactnameContent.family"_j)
+			set ContactContent.name = ContactnameContent
+
+			set ContacttelecomArray = ##class(%DynamicArray).%New()
+			set ContactphoneContent = ##class(%DynamicObject).%New()
+			set ContactphoneContent.system = "phone"
+			set ContactphoneContent.value = pArr.GetAt("ContactphoneContent.value"_j)
+			if ($EXTRACT(ContactphoneContent.value, 1, 2) = "07") || ($EXTRACT(ContactphoneContent.value, 1, 4) = "+447")
+			|| ($EXTRACT(ContactphoneContent.value, 1, 5) = "+44 7") || ($EXTRACT(ContactphoneContent.value, 1, 3) = "MOB")
+			{
+				set ContactphoneContent.use = "mobile"
+			}
+			else
+			{
+				set ContactphoneContent.use = "home"
+			}
+
+			do ContacttelecomArray.%Push(ContactphoneContent)
+			set ContactContent.telecom = ContacttelecomArray
+
+    	    set ContactAddressContent = ##class(%DynamicObject).%New()
+			set ContactAddressLinesArray = ##class(%DynamicArray).%New() // for address lines
+
+			do ContactAddressLinesArray.%Push(pArr.GetAt("ContactAddressLinesContent"_j))
+
+    	    if pArr.GetAt("ContactAddressLinesOtherContent"_j) '= ""
+    	    {
+    	        do ContactAddressLinesArray.%Push(pArr.GetAt("ContactAddressLinesOtherContent"_j))
+    	    }
+			do ContactAddressLinesArray.%Push(pArr.GetAt("ContactAddressLinesCityContent"_j))
+
+			if pArr.GetAt("ContactAddressLinesStateContent"_j) '= ""
+			{
+				do ContactAddressLinesArray.%Push(pArr.GetAt("ContactAddressLinesStateContent"_j))
+			}
+
+			set ContactAddressContent.line = ContactAddressLinesArray
+			set ContactAddressContent.postalCode = pArr.GetAt("ContactAddressContent.postalCode"_j)
+			set ContactContent.address = ContactAddressContent
+
+			do ContactContentArray.%Push(ContactContent)
+
+			Set j = j+1
+		}
+
+		set resource.contact = ContactContentArray
+		$$$LOGINFO(resource.%ToJSON())
+
+		//Link - Type
+		set patientCheckObj= ##class(%DynamicAbstractObject).%FromJSON(patientCheck)
+		$$$TRACE(patientCheckObj.%ToJSON())
+
+		if patientCheckObj.LinkType = "replaces"
+		{
+			set LinkContentArray  = ##class(%DynamicArray).%New()
+			set LinkContent = ##class(%DynamicObject).%New()
+			Set LinkOther = ##class(%DynamicObject).%New()
+			Set LinkOtherArray = ##class(%DynamicArray).%New()
+			set LinkOther.reference = "Patient/"_patientCheckObj.PatientTobereplaced
+			do LinkOtherArray.%Push(LinkOther)
+			Set LinkContent.other = LinkOtherArray
+			set LinkContent.type = "replaces"
+			do LinkContentArray.%Push(LinkContent)
+			set resource.link = LinkContentArray
+		}
+		$$$LOGINFO(resource.%ToJSON())
+		
+		//Extension
+		Set Extension = ##class(%DynamicArray).%New()
+
+		// Extension - BirthPlace
+		set birthPlace  = ##class(%DynamicObject).%New()
+		set birthPlaceValueAddress  = ##class(%DynamicObject).%New()
+		set birthPlace.url = "http://hl7.org/fhir/StructureDefinition/patient-birthPlace"
+		set birthPlaceValueAddress.text = pArr.GetAt("birthPlaceValueAddress.text")
+    	set birthPlace.valueAddress = birthPlaceValueAddress
+
+		do Extension.%Push(birthPlace)
+
+		//Extension - Comments
+		set commentsExtension  = ##class(%DynamicObject).%New()
+		set commentsExtension.url = "https://www.northerncarealliance.nhs.uk/fhir-profiles/PatientComments"
+		set commentsExtension.value= "This is a comment"
+		do Extension.%Push(commentsExtension)
+
+		// Extension - ethnicCategory
+		set ethnicCategory = ##class(%DynamicObject).%New()
+		set ethnicCategory.url = "https://fhir.hl7.org.uk/StructureDefinition/Extension-UKCore-EthnicCategory" //!!! this link will import ethnic categories from wales and
+		// and scotland as well!! Need to use england codes only?  "https://fhir.hl7.org.uk/CodeSystem/UKCore-EthnicCategoryEngland"
+		set ethnicCategory.value = pArr.GetAt("ethnicCategory.value")
+
+		do Extension.%Push(ethnicCategory)
+
+		// Extension - patientReligion
+		set patientReligion = ##class(%DynamicObject).%New()
+		set patientReligion.url = "http://hl7.org/fhir/StructureDefinition/patient-religion"
+		set patientReligion.value = pArr.GetAt("religion.value")
+
+		do Extension.%Push(patientReligion)
+
+		//Extension - Nationality
+		set Nationality = ##class(%DynamicObject).%New()
+		set Nationality.url = "https://www.northerncarealliance.nhs.uk/fhir-profiles/patientNationality"
+		set Nationality.value = pArr.GetAt("Nationality.value")
+
+		do Extension.%Push(Nationality)
+
+		//Extension - Occupation
+		set Occupation = ##class(%DynamicObject).%New()
+		set Occupation.url = "https://www.northerncarealliance.nhs.uk/fhir-profiles/patientOccupation"
+		set Occupation.value = "Nurse"
+
+		do Extension.%Push(Occupation)
+
+		//Extension - School
+		set School = ##class(%DynamicObject).%New()
+		set School.type = "edu"
+		set School.name = "School name"
+		set School.url = "https://www.northerncarealliance.nhs.uk/fhir-profiles/patientSchool"
+
+		do Extension.%Push(School)
+
+		//GP
+		set gpArray = ##class(%DynamicArray).%New()
+		set gpContent  = ##class(%DynamicObject).%New()
+		set gpContent.reference = ""
+		do gpArray.%Push(gpContent)
+
+		set resource.generalPractitioner = gpArray
+
+		//UKCore extensions
+		set resource.extension = Extension
+
+    	set pPatientResource = resource
+		$$$LOGINFO(pPatientResource.%ToJSON())
+
+	}
+	Catch ex {
+		Set tsc=ex.AsStatus()
+		do ex.Log()
+	}
+	Quit tsc
+]]></Implementation>
+</Method>
+
+<UDLText name="T">
+<Content><![CDATA[
+// Consent resource
+
+]]></Content>
+</UDLText>
+
+<Method name="ConsentResource">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>pArr:Ens.Request,*pConsentResource:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set tsc=$$$OK
+	Try {
+		set nhsNumber = pArr.GetAt("NhsNumberContent.value")
+		Set NhsNoVerif = pArr.GetAt("VerifStatus")
+    	set LocalCode = pArr.GetAt("LocalCode")
+
+    	if LocalCode '= ""
+    	{
+    	    set patientID = pArr.GetAt("LocalCodeAssigner")_LocalCode
+    	}
+		elseif (nhsNumber '= "") ;&& (NhsNoVerif = "NSTS01") ******Pending the final code 0/1 OR N/Y
+		{
+    	    set patientID = pArr.GetAt("NhsNumberAssigner")_nhsNumber
+    	}
+
+		set resource = ##class(%DynamicObject).%New()
+		set resource.resourceType = "Consent"
+
+		// Identifier
+		set IndentifierRef = ##class(%DynamicObject).%New()
+		set IndentifierRef.reference = "Organization/"_pArr.GetAt("LocalCodeAssigner") // need to check the field for the organization reference!
+		set resource.identifier = IndentifierRef
+
+		// status
+		set resource.status = "active"
+
+    	// Scope
+    	set tsc = ..CodeableConcept("http://hl7.org/fhir/ValueSet/consent-scope", "adr", "Advanced Care Directive", .pCoding, .content)
+		set resource.scope = pCoding
+
+    	// Patient
+		set PatientRef = ##class(%DynamicObject).%New()
+		set PatientRef.reference = "Patient/"_patientID
+		set resource.patient = PatientRef
+
+    	// Policy
+		set policyArray = ##class(%DynamicArray).%New()
+		set policyContent = ##class(%DynamicObject).%New()
+		set policyContent.uri = "https://www.northerncarealliance.nhs.uk/fhir-profiles/smsconsentpolicy"
+		do policyArray.%Push(policyContent)
+		set resource.policy = policyArray
+
+    	// Category
+    	set tsc = ..CodeableConcept("http://terminology.hl7.org/CodeSystem/v3-ActCode", "ICOL", "information collection", .pCategory, .content)
+		set resource.category = pCategory
+
+    	set pConsentResource = resource
+	}
+	Catch ex {
+		Set tsc=ex.AsStatus()
+		do ex.Log()
+	}
+	Quit tsc
+]]></Implementation>
+</Method>
+
+<Method name="FlagResource">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>pArr:Ens.Request,*pFlagResource:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set tsc=$$$OK
+	Try {
+		set nhsNumber = pArr.GetAt("NhsNumberContent.value")
+		Set NhsNoVerif = pArr.GetAt("VerifStatus")
+    	set LocalCode = pArr.GetAt("LocalCode")
+
+    	if (nhsNumber '= "") ;&& (NhsNoVerif = "NSTS01")  ******Pending the final code 0/1 OR N/Y
+		{
+    	    set patientID = pArr.GetAt("NhsNumberAssigner")_nhsNumber
+    	}
+    	elseif LocalCode '= ""
+    	{
+    	    set patientID = pArr.GetAt("LocalCodeAssigner")_LocalCode
+    	}
+
+		set resource = ##class(%DynamicObject).%New()
+		set resource.resourceType = "Flag"
+		set resource.status = "active"
+    	// Code
+    	set tsc = ..CodeableConcept("http://snomed.info/sct", "226201008", "Peanut-free diet", .pCoding, .content)
+		set resource.code = pCoding
+
+    	// Subject
+		set Subject = ##class(%DynamicObject).%New()
+		set Subject.reference = "patient/"_patientID
+		set resource.subject = Subject
+
+    	// Category
+    	set tsc = ..CodeableConcept("http://terminology.hl7.org/CodeSystem/flag-category", "diet", "Diet", .pCategory, .content)
+		set resource.category = pCategory
+
+    	set pFlagResource = resource
+	}
+	Catch ex {
+		Set tsc=ex.AsStatus()
+		do ex.Log()
+	}
+
+	Quit tsc
+]]></Implementation>
+</Method>
+
+<UDLText name="T">
+<Content><![CDATA[
+// GPPractitionerRole resource
+
+]]></Content>
+</UDLText>
+
+<Method name="GPPractitionerRoleResource">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>pArr:Ens.Request,*pGPPractitionerRoleResource:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set tsc = $$$OK
+	Try {
+		set resource = ##class(%DynamicObject).%New()
+		set resource.resourceType = "PractitionerRole"
+
+		set specialty = ##class(%DynamicObject).%New()
+		set specialtyArray = ##class(%DynamicArray).%New()
+
+		set tsc = ..CodeableConcept("http://snomed.info/sct", "394814009", "General practice", .class, .specialtyCoding)
+		do specialtyArray.%Push(specialtyCoding)
+		set specialty.coding = specialtyArray
+		set resource.specialty = specialty
+
+		set practitionerArray = ##class(%DynamicArray).%New()
+		set practitioner = ##class(%DynamicObject).%New()
+		set practitioner.reference = "Practitioner/"_pArr.GetAt("NationalCode")
+		do practitionerArray.%Push(practitioner)
+		set resource.practitioner = practitionerArray
+
+		set organizationArray = ##class(%DynamicArray).%New()
+		set organization = ##class(%DynamicObject).%New()
+		set organization.reference = "Organization/"_pArr.GetAt("odsOrganisationCode")
+		do organizationArray.%Push(organization)
+		set resource.organization = organizationArray
+
+		set pGPPractitionerRoleResource = resource
+	}
+	Catch ex {
+		Set tsc=ex.AsStatus()
+		do ex.Log()
+	}
+	Quit tsc
+]]></Implementation>
+</Method>
+
+<UDLText name="T">
+<Content><![CDATA[
+// PractitionerRole
+
+]]></Content>
+</UDLText>
+
+<Method name="PractitionerRoleResource">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>pArr:Ens.Request,*pPractitionerRoleResource:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set tsc = $$$OK
+	Try {
+		set resource = ##class(%DynamicObject).%New()
+		set resource.resourceType = "PractitionerRole"
+
+		set specialty = ##class(%DynamicObject).%New()
+		set specialtyArray = ##class(%DynamicArray).%New()
+		set specialtyCoding = ##class(%DynamicObject).%New()
+
+		set tsc = ..CodeableConcept("LocalSpecialty-RW6_OR_LocalSpecialty-RM3", pArr.GetAt("PractitionerRole.specialty"), "######", .class, .specialtyCoding1)
+		do specialtyArray.%Push(specialtyCoding1)
+
+		set tsc = ..CodeableConcept("https://www.datadictionary.nhs.uk/attributes/main_specialty_code.html",
+    	                            "######", "######", .class, .specialtyCoding2)
+		do specialtyArray.%Push(specialtyCoding2)
+
+		set tsc = ..CodeableConcept("https://www.datadictionary.nhs.uk/supporting_information/main_specialty_and_treatment_function_codes_table.html",
+    	                            "######", "######", .class, .specialtyCoding3)
+		do specialtyArray.%Push(specialtyCoding3)
+		set specialty.coding = specialtyArray
+		set resource.specialty = specialty
+
+		set practitionerArray = ##class(%DynamicArray).%New()
+		set practitioner = ##class(%DynamicObject).%New()
+		set practitioner.reference = "Practitioner/"_pArr.GetAt("NationalCode")
+		do practitionerArray.%Push(practitioner)
+		set resource.practitioner = practitionerArray
+
+
+		set pPractitionerRoleResource = resource
+	}
+	Catch ex {
+		Set tsc=ex.AsStatus()
+		do ex.Log()
+		
+	}
+
+	Quit tsc
+]]></Implementation>
+</Method>
+
+<UDLText name="T">
+<Content><![CDATA[
+// Practitioner Resource
+
+]]></Content>
+</UDLText>
+
+<Method name="PractitionerResource">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>pArr:Ens.Request,*pPractitionerResource:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set tsc = $$$OK
+	Try {
+		set PASLocal = pArr.GetAt("PASLocal")
+		set NationalCode = pArr.GetAt("NationalCode")
+		set ADLocal = pArr.GetAt("ADLocal")
+
+		set GPFamilyName=pArr.GetAt("GPFamilyName")
+		set GPGivenName=pArr.GetAt("GPGivenName")
+		set GPPrefix=pArr.GetAt("GPPrefix")
+
+		// Create a new resource
+		set resource = ##class(%DynamicObject).%New()
+
+		// Create a "Resource Type" and add it to the resource
+		set resource.resourceType = "Practitioner"
+
+		// PAS Local
+		set identifierArray = ##class(%DynamicArray).%New()
+		/*
+		if PASLocal '= ""
+		{
+			set PASLocalContent = ##class(%DynamicObject).%New()
+			set PASLocalContent.system = "https://www.northerncarealliance.nhs.uk/PAS-LOCAL"
+			set PASLocalContent.value = PASLocal
+			set PASLocalContent.assigner = ..AssignerBuilder("Organization/RW6orRM3")
+
+			do identifierArray.%Push(PASLocalContent)
+		}
+		*/
+
+		// National Code
+		if NationalCode '= ""
+		{
+			set NationalCodeContent = ##class(%DynamicObject).%New()
+			Set NationalCodeAssigner = ##class(%DynamicObject).%New()
+			set NationalCodeContent.system = "https://fhir.hl7.org.uk/Id/gmc-number"
+			set NationalCodeContent.value = NationalCode
+			do identifierArray.%Push(NationalCodeContent)
+		}
+
+		if ADLocal '= ""
+		{
+			set ADLocalContent = ##class(%DynamicObject).%New()
+			Set ADLocalAssigner = ##class(%DynamicObject).%New()
+			set ADLocalContent.system = "https://www.northerncarealliance.nhs.uk/PAS-LOCAL"
+			set ADLocalContent.value = ADLocal //need to be looked up??
+			set ADLocalAssigner.identifier = "RW6orRM3" //need to be looked up??
+			set ADLocalContent.assigner = ADLocalAssigner
+
+			do identifierArray.%Push(ADLocalContent)
+		}
+
+		set resource.identifier = identifierArray
+
+		// GP Name
+		set GPnameArray = ##class(%DynamicArray).%New()
+		set GPnameContent = ##class(%DynamicObject).%New()
+		Set GPnameAssigner = ##class(%DynamicObject).%New()
+		set GPnameContent.use = "official"
+		set GPnameContent.family = GPFamilyName
+		set GPnameContent.given = GPGivenName
+		set GPnameContent.prefix = GPPrefix
+		do GPnameArray.%Push(GPnameContent)
+
+		set resource.name = GPnameArray
+
+		set pPractitionerResource = resource
+	}
+	Catch ex {
+		Set tsc=ex.AsStatus()
+		do ex.Log()
+	}
+
+	Quit tsc
+]]></Implementation>
+</Method>
+
+<UDLText name="T">
+<Content><![CDATA[
+// Organization resource
+
+]]></Content>
+</UDLText>
+
+<Method name="OrganizationResource">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>pArr:Ens.Request,Type:%String,*pOrganizationResource:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set tsc = $$$OK
+
+	Try {
+		if Type = "TRUST" {set OdsCode = pArr.GetAt("LocalCodeAssigner")}
+		elseif Type = "GP" {set OdsCode = pArr.GetAt("odsOrganisationCode")}
+		
+		// Create a new resource
+		set resource = ##class(%DynamicObject).%New()
+
+		// Create a "Resource Type" and add it to the resource
+		set resource.resourceType = "Organization"
+
+		// PAS Local
+		set identifierArray = ##class(%DynamicArray).%New()
+		if OdsCode '= ""
+		{
+			set OdsCodeContent = ##class(%DynamicObject).%New()
+			Set OdsCodeIdentifierContent = ##class(%DynamicObject).%New()
+			set OdsCodeContent.system = "https://www.northerncarealliance.nhs.uk/ODS-LOCAL"
+			set OdsCodeContent.use = "official"
+			set OdsCodeContent.value = OdsCode
+
+			do identifierArray.%Push(OdsCodeContent)
+		}
+		else {
+			Set mygenex = ##class(%Exception.General).%New("Missing ODS Code","5001",,
+    	                "The inbound HL7 message doesn't contain an ODS CODE")
+    		Throw mygenex
+		}
+
+		set resource.identifier = identifierArray
+		
+		// Organization name
+		if $LISTBUILD("RW6", "RM3") [ OdsCode {Set resource.name = "NORTH MANCHESTER GENERAL HOSPITAL"}
+		else {Set resource.name = "GP ORGANIZATION NAME"}
+
+    	// telecom: Hardcode address & phone
+    	set telecomArray = ##class(%DynamicArray).%New()
+		set phoneContent = ##class(%DynamicObject).%New()
+    	set phoneContent.system = "phone"
+		if $LISTBUILD("RW6", "RM3") [ OdsCode {set phoneContent.value = "01617897373"}
+		else {Set phoneContent.value = "GP phone 01234567898"}
+		set phoneContent.use = "work"
+		do telecomArray.%Push(phoneContent)
+
+    	set resource.telecom = telecomArray
+
+    	// Organisation Address
+		set addressArray = ##class(%DynamicArray).%New()
+		set addressContent = ##class(%DynamicObject).%New()
+		set addressLinesArray = ##class(%DynamicArray).%New()
+
+		if $LISTBUILD("RW6", "RM3") [ OdsCode
+		{
+			do addressLinesArray.%Push("Mayo Building")
+			do addressLinesArray.%Push("Salford Royal")
+			do addressLinesArray.%Push("Stott Lane")
+			do addressLinesArray.%Push("Salford")
+		}
+		else
+		{
+			do addressLinesArray.%Push("GP ADDRESS1")
+			do addressLinesArray.%Push("GP ADDRESS2")
+			do addressLinesArray.%Push("GP ADDRESS3")
+			do addressLinesArray.%Push("GP ADDRESS4")
+		}
+		
+		
+		set addressContent.line = addressLinesArray
+		if $LISTBUILD("RW6", "RM3") [ OdsCode {set addressContent.postalCode = "M6 8HD"}
+		else {set addressContent.postalCode = "GP PostCode"}
+		
+		do addressArray.%Push(addressContent)
+
+		set resource.address = addressArray
+
+		set pOrganizationResource = resource
+	}
+	Catch ex {
+		Set tsc=ex.AsStatus()
+		do ex.Log()
+
+	}
+
+	Quit tsc
+]]></Implementation>
+</Method>
+
+<UDLText name="T">
+<Content><![CDATA[
+// Location resource
+
+]]></Content>
+</UDLText>
+
+<Method name="LocationResource">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>pArr:Ens.Request,*pLocationResource:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set tsc = $$$OK
+	Try {
+		// Create a new resource
+		set resource = ##class(%DynamicObject).%New()
+
+		// Create a "Resource Type" and add it to the resource
+		set resource.resourceType = "Location"
+
+		// PAS Local
+		set identifierArray = ##class(%DynamicArray).%New()
+
+		set LocationCodeContent1 = ##class(%DynamicObject).%New()
+		set LocationCodeContent1.system = "https://fhir.nhs.uk/Id/ods-site-code"
+    	set LocationCodeContent1.value = pArr.GetAt("LocationCode")
+		do identifierArray.%Push(LocationCodeContent1)
+
+		set LocationCodeContent2 = ##class(%DynamicObject).%New()
+		set LocationCodeContent2.system = "https://fhir.nhs.uk/Id/ods-site-code"
+		set LocationCodeContent2.value = "########"
+		if pArr.GetAt("LocalCodeAssigner") '= ""
+		{
+			set LocationCodeContent2.assigner = ..AssignerBuilder("Organization/"_pArr.GetAt("LocalCodeAssigner"))
+		}
+
+		do identifierArray.%Push(LocationCodeContent2)
+
+		set resource.identifier = identifierArray
+
+		// PhysicalType
+		set tsc = ..CodeableConcept("https://terminology.hl7.org/4.0.0/CodeSystem-location-physical-type.html", pArr.GetAt("LocationType"), "", .physicalType, .specialtyCoding)
+		set resource.physicalType = physicalType
+
+		// Name
+    	set resource.name = pArr.GetAt("LocationName")
+		set pLocationResource = resource
+	}
+	Catch ex {
+		Set tsc=ex.AsStatus()
+		do ex.Log()
+	}
+	Quit tsc
+]]></Implementation>
+</Method>
+
+<UDLText name="T">
+<Content><![CDATA[
+// EpisodeOfCare resource
+
+]]></Content>
+</UDLText>
+
+<Method name="EpisodeOfCareResource">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>pArr:Ens.Request,*pEpisodeOfCareResource:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set tsc = $$$OK
+	Try {
+		set resource = ##class(%DynamicObject).%New()
+		set resource.resourceType = "EpisodeOfCare"
+
+		set identifier = ##class(%DynamicObject).%New()
+		set identifierArray = ##class(%DynamicArray).%New()
+		set identifierCoding = ##class(%DynamicObject).%New()
+		set identifierCoding.system = "LocalEpisodeId"
+		set identifierCoding.value = pArr.GetAt("EpisodeOfCareValue")
+		if pArr.GetAt("LocalCodeAssigner") '= ""
+		{
+			set identifierCoding.assigner = ..AssignerBuilder("Organization/"_pArr.GetAt("LocalCodeAssigner"))
+		}
+
+		do identifierArray.%Push(identifierCoding)
+		set resource.identifier = identifierArray
+
+		set resource.status = "active" ;TBD
+
+		; TBD: EpisodeOfCare.type
+
+		Set nhsNumber = pArr.GetAt("NhsNumberContent.value")
+		Set NhsNoVerif = pArr.GetAt("VerifStatus")
+    	set LocalCode = pArr.GetAt("LocalCode")
+		
+		set PatientReference = ##class(%DynamicObject).%New()
+		if (nhsNumber '= "") ;&& (NhsNoVerif = "NSTS01")  ******Pending the final code 0/1 OR N/Y
+		{
+			set PatientReference.reference = "Patient/NHS"_nhsNumber
+			}
+		elseif LocalCode '= "" {
+			set PatientReference.reference = "Patient/"_pArr.GetAt("LocalCodeAssigner")_LocalCode}
+		
+		set resource.patient = PatientReference
+
+		set tsc = ..SetPeriod("2022-11-01", "2022-11-10", .period)
+		set resource.period = period
+
+		set pEpisodeOfCareResource =  resource
+	}
+	Catch ex {
+		Set tSC=ex.AsStatus()
+		do ex.Log()
+	}
+
+	Quit tsc
+]]></Implementation>
+</Method>
+
+<UDLText name="T">
+<Content><![CDATA[
+// EpisodeOfCare resource
+
+]]></Content>
+</UDLText>
+
+<Method name="EncounterResource">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>pArr,*pEncounterResource:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set tsc = $$$OK
+	Try {
+		set resource = ##class(%DynamicObject).%New()
+		set resource.resourceType = "Encounter"
+
+		// identifier
+		set identifier = ##class(%DynamicObject).%New()
+		set identifierArray = ##class(%DynamicArray).%New()
+		set identifierCoding = ##class(%DynamicObject).%New()
+		;set identifierCoding.system = "http://example.com" // Not in the guide? to remove?
+		set identifierCoding.value = pArr.GetAt("EncounterIdentifier")
+		if pArr.GetAt("LocalCodeAssigner") '= ""
+		{
+			set identifierCoding.assigner = ..AssignerBuilder("Organization/"_pArr.GetAt("LocalCodeAssigner"))
+		}
+
+		do identifierArray.%Push(identifierCoding)
+		set resource.identifier = identifierArray
+
+		//status
+		set resource.status = "finished"
+
+		// Status History
+		set stHist = ##class(%DynamicArray).%New()
+		set stHistperiod = ##class(%DynamicObject).%New()
+
+		set stHistperiod.status = "cancelled"
+
+		set tsc = ..SetPeriod("2022-11-01", "2022-11-10", .period)
+		set stHistperiod.period = period
+
+		do stHist.%Push(stHistperiod)
+		set resource.statusHistory = stHist
+
+		// Class
+		set tsc = ..CodeableConcept("https://simplifier.net/packages/hl7.fhir.r4.core/4.0.1/files/80998/~overview", "AMB", "ambulatory", .pCodeConcept, .class)
+		set resource.class = class
+
+		// ServiceType
+		set tsc = ..CodeableConcept("http://snomed.info/sct", "736622005", "Aboriginal health service", .ServiceType, .Dynobject)
+		set resource.serviceType = ServiceType
+
+		// Priority
+		set tsc = ..CodeableConcept("http://terminology.hl7.org/CodeSystem/v3-ActPriority", "A", "ASAP", .Priority, .Dynobject)
+		set resource.priority = Priority
+
+		// Subject
+		set nhsNumber = pArr.GetAt("NhsNumberContent.value")
+		Set NhsNoVerif = pArr.GetAt("VerifStatus")
+    	set LocalCode = pArr.GetAt("LocalCode")
+
+		set Subject = ##class(%DynamicObject).%New()
+		if (nhsNumber '= "") ;&& (NhsNoVerif = "NSTS01")  ******Pending the final code 0/1 OR N/Y
+		{
+			set Subject.reference = "https://www.northerncarealliance.nhs.uk/fhir-profiles/Patient/"_pArr.GetAt("NhsNumberContent.value")
+		}
+		elseif LocalCode '= ""
+		{
+			set Subject.reference = "https://www.northerncarealliance.nhs.uk/fhir-profiles/Patient/"_pArr.GetAt("LocalCodeAssigner")_LocalCode
+		}
+		set resource.subject = Subject
+
+		// EpisodeOfCare
+		set EpisodeOfCare = ##class(%DynamicObject).%New()
+		set EpisodeOfCare.reference = "episodeOfCare/"_pArr.GetAt("EpisodeOfCareValue")
+		set resource.episodeOfCare = EpisodeOfCare
+
+		// BasedOn
+		set BasedOn = ##class(%DynamicObject).%New()
+		set BasedOn.reference = "serviceRequest/0123456"
+		set resource.basedOn = BasedOn
+
+		// Participant
+		set participantArray = ##class(%DynamicArray).%New()
+		set participantTypeArray = ##class(%DynamicArray).%New()
+		set participantType = ##class(%DynamicObject).%New()
+
+		set tsc = ..CodeableConcept("http://terminology.hl7.org/CodeSystem/v3-ParticipationType", "ATND", "attender", .partType, .Dynobject)
+		do participantTypeArray.%Push(partType)
+		set participantType.type = participantTypeArray
+		do participantArray.%Push(participantType)
+
+		set resource.participant = participantArray
+
+		// Period
+		set tsc = ..SetPeriod("2022-11-01", "2022-11-10", .period)
+		set resource.period = period
+
+		// Location
+		set Location = ##class(%DynamicObject).%New()
+		set LocationObject = ##class(%DynamicObject).%New()
+		set LocationArray = ##class(%DynamicArray).%New()
+		set Location.reference = "Location/"_pArr.GetAt("LocationCode")
+		set LocationObject.location = Location
+		do LocationArray.%Push(LocationObject)
+		set resource.location = LocationArray
+
+		set pEncounterResource = resource
+	}
+	Catch ex {
+		Set tsc=ex.AsStatus()
+		do ex.Log()
+	}
+	quit tsc
+]]></Implementation>
+</Method>
+
+<Method name="ServiceRequestResource">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>pArr:Ens.Request,*pServiceRequestResource:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set tsc = $$$OK
+	Try {
+		set resource = ##class(%DynamicObject).%New()
+		set resource.resourceType = "ServiceRequest"
+
+		// identifier
+		set identifier = ##class(%DynamicObject).%New()
+		set identifierArray = ##class(%DynamicArray).%New()
+		set identifierCoding = ##class(%DynamicObject).%New()
+		set identifierCoding.value = "########"
+		//if pArr.GetAt("NhsNumberAssigner") '= ""
+		//{
+		//set identifierCoding.assigner =  ..AssignerBuilder("") //..AssignerBuilder("Organization/"_pArr.GetAt("NhsNumberAssigner"))
+		//}
+		do identifierArray.%Push(identifierCoding)
+		set resource.identifier = identifierArray
+
+		//status
+		set resource.status = pArr.GetAt("SRstatus")
+
+		// Priority
+		set tsc = ..CodeableConcept("http://terminology.hl7.org/CodeSystem/v3-ActPriority", "A", "ASAP", .Priority, .Dynobject)
+		set resource.priority = Priority
+
+		//Category
+		set category = ##class(%DynamicArray).%New()
+		set category.text = pArr.GetAt("SRcategoryText")
+		set resource.category = category
+
+		// Subject
+		set Subject = ##class(%DynamicObject).%New()
+    	if pArr.GetAt("NhsNumberContent.value") '= ""
+    	{
+    	    set Subject.reference = "Patient/"_pArr.GetAt("NhsNumberContent.value")
+    	}
+		elseif pArr.GetAt("LocalCode") '= ""
+    	{
+    	    set Subject.reference = "Patient/"_pArr.GetAt("LocalCodeAssigner")_pArr.GetAt("LocalCode")
+    	}
+		set resource.subject = Subject
+
+		// Encounter
+		set Encounter = ##class(%DynamicObject).%New()
+		set Encounter.reference = "Encounter/0123456"
+		set resource.encounter = Encounter
+
+		// LocationReference
+		set LocationReference = ##class(%DynamicObject).%New()
+		set LocationReference.reference = "Location/"_pArr.GetAt("LocationCode")
+		set resource.locationReference = LocationReference
+		set pServiceRequestResource = resource
+	}
+	Catch ex {
+		Set tSC=ex.AsStatus()
+		do ex.Log()
+	}
+	quit tsc
+]]></Implementation>
+</Method>
+
+<Method name="CodeableConcept">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>pSystem:%String,pCode:%String,pDisplay:%String,*pCodeConcept:%DynamicObject,*pDynObject:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set tsc = $$$OK
+
+	set pCodeConcept = ##class(%DynamicObject).%New()
+	set pDynObject = ##class(%DynamicObject).%New()
+	set DynArray = ##class(%DynamicArray).%New()
+	set pDynObject.system = pSystem
+	set pDynObject.code = pCode
+	set pDynObject.display = pDisplay
+	do DynArray.%Push(pDynObject)
+
+	set pCodeConcept.coding = DynArray
+
+	quit tsc
+
+    #; listpart is valid
+]]></Implementation>
+</Method>
+
+<Method name="AssignerBuilder">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>pReference:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+    set tsc = $$$OK
+    set AssignerArray = ##class(%DynamicArray).%New()
+	set Assigner = ##class(%DynamicObject).%New()
+	set Assigner.reference = pReference
+	do AssignerArray.%Push(Assigner)
+
+    return AssignerArray
+    quit tsc
+]]></Implementation>
+</Method>
+
+<Method name="SetPeriod">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>start:%String,end:%String,*pDynObject:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set tsc=$$$OK
+	set pDynObject = ##class(%DynamicObject).%New()
+	set pDynObject.start = start
+	set pDynObject.end = end
+
+	quit tsc
+]]></Implementation>
+</Method>
+
+<Method name="ConceptMapParams">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>*strmCont:Ens.StreamContainer</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set tsc = $$$OK
+
+	set strmCont=##class(Ens.StreamContainer).%New()
+	set strm = ##class(%Stream.GblChrCompress).%New()
+
+	set pDynObject = ##class(%DynamicObject).%New()
+	set pDynObject.system = "http://hl7.org/fhir/ValueSet/administrative-gender"
+	set pDynObject.code = "M"
+	set pDynObject.source = "https://fhir.simplifier.net/NCA-TESTS/ConceptMap/b6648143-4a37-413f-97cb-08796d1d765e"
+	set pDynObject.target = "https://simplifier.net/packages/hl7.fhir.r4.core/4.0.1/files/81193"
+
+	set strm = ##class(%Stream.GblChrCompress).%New()
+	set formatter = ##class(%JSON.Formatter).%New()
+	set Inputstring = pDynObject.%ToJSON()
+	do formatter.FormatToStream(Inputstring, .strm)
+	set strmCont.Stream=strm
+
+	quit tsc
+]]></Implementation>
+</Method>
+
+<Method name="OnResponse">
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	$$$TRACE("Trace_OnResponse")
+	q $$$OK
+]]></Implementation>
+</Method>
+
+<Storage name="Default">
+<Type>%Storage.Persistent</Type>
+</Storage>
+</Class>
+
+
+<Document name="EnsExportNotes.EnsExportProduction_2023-02-23 10-42-32_805+0.PTD"><ProjectTextDocument name="EnsExportNotes.EnsExportProduction_2023-02-23 10-42-32_805+0" description="Export Notes for export EnsExportProduction_2023-02-23 10-42-32_805+0">
+<![CDATA[<Deployment>
+<Creation>
+<Machine>N-CDR-SVW-FHIR1.XPAT.NHS.UK</Machine>
+<Instance>IRISHEALTH</Instance>
+<Namespace>USER</Namespace>
+<SourceProduction>FHIR.TransformationProduction</SourceProduction>
+<Username>haitem</Username>
+<UTC>2023-02-23 10:43:10.026</UTC>
+</Creation>
+<Notes>
+</Notes>
+<Contents>
+<ExportProject>EnsExportProduction_2023-02-23 10-42-32_805+0</ExportProject>
+<Item num="1">FHIR.TransformationProduction.CLS</Item>
+<Item num="2">NCA.FHIR.Operation.ConceptMap.CLS</Item>
+<Item num="3">NCA.FHIR.Operation.HTTPOut.CLS</Item>
+<Item num="4">NCA.FHIR.Operation.HttpResponse.CLS</Item>
+<Item num="5">NCA.FHIR.Process.HL7toFHIRTransform.CLS</Item>
+</Contents>
+<ProductionClassInExport>FHIR.TransformationProduction</ProductionClassInExport>
+</Deployment>
+
+]]></ProjectTextDocument>
+</Document></Export>
